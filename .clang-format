@@ -1,0 +1,16 @@
+---
+AlignAfterOpenBracket: AlwaysBreak
+AllowShortBlocksOnASingleLine: Empty
+AllowShortFunctionsOnASingleLine: Inline
+BasedOnStyle: LLVM
+BinPackArguments: false
+BinPackParameters: false
+BreakConstructorInitializers: AfterColon
+ColumnLimit: 100
+ConstructorInitializerAllOnOneLineOrOnePerLine: true
+IndentWidth: 2
+InsertTrailingCommas: Wrapped
+Language: Cpp
+UseTab: Never
+
+# RIP https://reviews.llvm.org/D33029
