@@ -1,7 +1,9 @@
+common_configuration()
+
 #TODO: find a better name maybe
 add_library(LinterLib STATIC)
-target_include_directories(LinterLib PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
-target_compile_options(LinterLib PUBLIC -Wall -Wextra -pedantic)
+target_include_directories(LinterLib PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
+target_include_directories(LinterLib SYSTEM INTERFACE ${CMAKE_CURRENT_SOURCE_DIR})
 
 add_executable(lzn)
 target_sources(lzn PRIVATE main.cpp)

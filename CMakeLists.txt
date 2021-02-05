@@ -1,19 +1,41 @@
 cmake_minimum_required(VERSION 3.19) #TODO: probably to high
-project(MiniZincLinter)
-set(CMAKE_CXX_STANDARD 17)
+project(MiniZincLinter CXX)
 
+if(NOT CMAKE_BUILD_TYPE)
+  set(CMAKE_BUILD_TYPE Release)
+endif()
+
+# Activate my custom flags for development.
+option(LZN_FLAGS "Whether to activate my development flags" OFF)
+# Flags for everything:
+if(LZN_FLAGS)
+  set(CMAKE_CXX_FLAGS_DEBUG "-Og -ggdb3")
+endif()
+
+# Flags for my files
+macro(common_configuration)
+set(CMAKE_CXX_STANDARD 17)
+if(LZN_FLAGS)
+  set(CMAKE_CXX_FLAGS "-Wall -Wextra -pedantic")
+endif()
+endmacro()
+
+# Include my targets
 add_subdirectory(src)
 
+# Include MiniZinc targets
 add_subdirectory(deps/libminizinc EXCLUDE_FROM_ALL)
 target_link_libraries(LinterLib PUBLIC mzn)
 #NOTE: include_directories from mzn were not public
 target_include_directories(
   LinterLib
+  SYSTEM
   PUBLIC
   $<TARGET_PROPERTY:mzn,INCLUDE_DIRECTORIES>
   )
 
-#TODO: do tests like this?
-enable_testing()
-add_subdirectory(tests)
-add_test(NAME MyTest COMMAND Test)
+# Add test targets
+# #TODO: do tests like this?
+# enable_testing()
+# add_subdirectory(tests)
+# add_test(NAME MyTest COMMAND Test)

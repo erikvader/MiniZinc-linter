@@ -1,7 +1,7 @@
 # About
 This is my master thesis project for a
 [linter](https://en.wikipedia.org/wiki/Lint_(software)) for
-[MiniZinc](https://www.minizinc.org/).
+[MiniZinc](https://www.minizinc.org/), project at [libminizinc](https://github.com/MiniZinc/libminizinc).
 
 # Linting rules
 Each linting rule is a separate issue tagged with `lint`. This gives
@@ -21,7 +21,11 @@ cmake ..
 cmake --build .
 ```
 
-## Language server
-Run the first cmake with `-DCMAKE_EXPORT_COMPILE_COMMANDS=YES` and add
-a symbolic link to the root directory with `ln -sr compile_commands.json ..`
-to make [ccls](https://github.com/MaskRay/ccls) find all files.
+There are some interesting flags that can be set on the generation step. For example `cmake -DCMAKE_BUILD_TYPE=Debug ..`.
+
+| Variable                        | Default             | Description                                                                              |
+|:--------------------------------|:--------------------|:-----------------------------------------------------------------------------------------|
+| CMAKE_EXPORT_COMPILE_COMMANDS   | NO                  | Export how each file got compiled, useful for [ccls](https://github.com/MaskRay/ccls)    |
+| CMAKE_BUILD_TYPE                | Release             | Whether to build with debug flags or release flags                                       |
+| CMAKE_POSITION_INDEPENDENT_CODE | Same as libminizinc | Whether to compile with [-fPIC](https://en.wikipedia.org/wiki/Position-independent_code) |
+| LZN_FLAGS                       | NO                  | Use my preferred development flags                                                       |
