@@ -20,6 +20,7 @@ cd build
 cmake ..
 cmake --build .
 ```
+Build in parallel with `-j <N>` on the build step where *N* is the number of jobs.
 
 There are some interesting flags that can be set on the generation step. For example `cmake -DCMAKE_BUILD_TYPE=Debug ..`.
 Here is a table of some of them:
