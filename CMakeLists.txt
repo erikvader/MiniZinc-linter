@@ -20,6 +20,10 @@ if(LZN_FLAGS)
 endif()
 endmacro()
 
+# Set the default back to false
+# https://github.com/MiniZinc/libminizinc/blob/e385f96afad3c1c3a361a0378e7e24898dcef14d/CMakeLists.txt#L30
+option(CMAKE_POSITION_INDEPENDENT_CODE "Default value for POSITION_INDEPENDENT_CODE of targets" FALSE)
+
 # Include my targets
 add_subdirectory(src)
 

@@ -22,10 +22,10 @@ cmake --build .
 ```
 
 There are some interesting flags that can be set on the generation step. For example `cmake -DCMAKE_BUILD_TYPE=Debug ..`.
-
-| Variable                        | Default             | Description                                                                              |
-|:--------------------------------|:--------------------|:-----------------------------------------------------------------------------------------|
-| CMAKE_EXPORT_COMPILE_COMMANDS   | NO                  | Export how each file got compiled, useful for [ccls](https://github.com/MaskRay/ccls)    |
-| CMAKE_BUILD_TYPE                | Release             | Whether to build with debug flags or release flags                                       |
-| CMAKE_POSITION_INDEPENDENT_CODE | Same as libminizinc | Whether to compile with [-fPIC](https://en.wikipedia.org/wiki/Position-independent_code) |
-| LZN_FLAGS                       | NO                  | Use my preferred development flags                                                       |
+Here is a table of some of them:
+| Variable                        | Default | Description                                                                              |
+|:--------------------------------|:--------|:-----------------------------------------------------------------------------------------|
+| CMAKE_EXPORT_COMPILE_COMMANDS   | NO      | Export how each file got compiled, useful for [ccls](https://github.com/MaskRay/ccls)    |
+| CMAKE_BUILD_TYPE                | Release | Whether to build with debug flags or release flags                                       |
+| CMAKE_POSITION_INDEPENDENT_CODE | NO      | Whether to compile with [-fPIC](https://en.wikipedia.org/wiki/Position-independent_code) |
+| LZN_FLAGS                       | NO      | Use my preferred development flags                                                       |
