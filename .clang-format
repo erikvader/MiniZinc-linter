@@ -2,6 +2,7 @@
 AlignAfterOpenBracket: AlwaysBreak
 AllowShortBlocksOnASingleLine: Empty
 AllowShortFunctionsOnASingleLine: Inline
+AlwaysBreakTemplateDeclarations: Yes
 BasedOnStyle: LLVM
 BinPackArguments: false
 BinPackParameters: false
