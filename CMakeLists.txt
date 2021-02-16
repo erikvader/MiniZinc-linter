@@ -38,8 +38,5 @@ target_include_directories(
   $<TARGET_PROPERTY:mzn,INCLUDE_DIRECTORIES>
   )
 
-# Add test targets
-# #TODO: do tests like this?
-# enable_testing()
-# add_subdirectory(tests)
-# add_test(NAME MyTest COMMAND Test)
+# Tests
+add_subdirectory(tests)

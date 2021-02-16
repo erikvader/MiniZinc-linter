@@ -1,8 +1,11 @@
-#include "no-domain-var-decl.hpp"
+#include <linter/registry.hpp>
+#include <linter/rules.hpp>
 #include <minizinc/astiterator.hh>
 #include <minizinc/prettyprinter.hh>
 
 namespace {
+using namespace LZN;
+
 bool isNoDomainVar(const MiniZinc::VarDecl &vd) {
   auto t = vd.type();
   auto domain = vd.ti()->domain();
@@ -35,12 +38,16 @@ public:
   void vConstraintI(MiniZinc::ConstraintI *ci) { top_down(udv, ci->e()); }
   void vFunctionI(MiniZinc::FunctionI *fi) { top_down(udv, fi->e()); }
 };
+
+class NoDomainVarDecl : public LintRule {
+public:
+  constexpr NoDomainVarDecl() : LintRule(42, "hejsan") {}
+  void run(MiniZinc::Model *model, std::vector<LintResult> &results) const override {
+    ItemVisitor uvdv;
+    MiniZinc::iter_items(uvdv, model);
+  }
+};
+
 } // namespace
 
-namespace LZN {
-void NoDomainVarDecl::run(MiniZinc::Model *model, std::vector<LintResult> &results) const {
-  ItemVisitor uvdv;
-  MiniZinc::iter_items(uvdv, model);
-}
-
-} // namespace LZN
+REGISTER_RULE(NoDomainVarDecl)

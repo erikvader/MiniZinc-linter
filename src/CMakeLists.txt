@@ -1,7 +1,7 @@
 common_configuration()
 
 #TODO: find a better name maybe
-add_library(LinterLib STATIC)
+add_library(LinterLib OBJECT)
 target_include_directories(LinterLib PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
 target_include_directories(LinterLib SYSTEM INTERFACE ${CMAKE_CURRENT_SOURCE_DIR})
 
