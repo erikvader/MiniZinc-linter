@@ -1,3 +1,9 @@
 [submodule "deps/libminizinc"]
 	path = deps/libminizinc
 	url = https://github.com/MiniZinc/libminizinc
+[submodule "deps/rang"]
+	path = deps/rang
+	url = https://github.com/agauniyal/rang
+[submodule "deps/Catch2"]
+	path = deps/Catch2
+	url = https://github.com/catchorg/Catch2

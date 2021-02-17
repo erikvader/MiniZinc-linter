@@ -26,6 +26,7 @@ option(CMAKE_POSITION_INDEPENDENT_CODE "Default value for POSITION_INDEPENDENT_C
 
 # Include my targets
 add_subdirectory(src)
+target_include_directories(LinterLib SYSTEM PUBLIC deps/rang/include)
 
 # Include MiniZinc targets
 add_subdirectory(deps/libminizinc EXCLUDE_FROM_ALL)
@@ -40,3 +41,5 @@ target_include_directories(
 
 # Tests
 add_subdirectory(tests)
+add_subdirectory(deps/Catch2 EXCLUDE_FROM_ALL)
+target_link_libraries(Test PRIVATE Catch2::Catch2)
