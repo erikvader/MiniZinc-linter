@@ -7,8 +7,6 @@
 
 namespace LZN {
 
-// TODO: custom iterator
-
 class Registry {
 private:
   typedef std::unordered_map<lintId, const LintRule *> RuleMap;
@@ -18,9 +16,28 @@ private:
 public:
   static bool add(const LintRule *i);
   static const LintRule *get(lintId id);
-  static RuleMap::const_iterator begin() noexcept;
-  static RuleMap::const_iterator end() noexcept;
   static std::size_t size() noexcept;
+
+  class iterator
+      : public std::iterator<std::forward_iterator_tag, const RuleMap::value_type::second_type> {
+    RuleMap::const_iterator it;
+
+  public:
+    explicit iterator(RuleMap::const_iterator &&it) : it(it) {}
+    iterator &operator++();
+    iterator operator++(int);
+    bool operator==(iterator other) const;
+    bool operator!=(iterator other) const;
+    reference operator*() const;
+  };
+
+  class Iter {
+  public:
+    iterator begin() const noexcept;
+    iterator end() const noexcept;
+  };
+
+  static Iter iter() noexcept;
 };
 
 } // namespace LZN

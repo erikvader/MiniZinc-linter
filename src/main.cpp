@@ -21,8 +21,7 @@ int main(int argc, const char *argv[]) {
   errstream >> std::cout.rdbuf();
 
   std::vector<LZN::LintResult> results;
-  for (auto i = LZN::Registry::begin(); i != LZN::Registry::end(); i++) {
-    auto rule = i->second;
+  for (auto rule : LZN::Registry::iter()) {
     rule->run(m, results);
   }
 

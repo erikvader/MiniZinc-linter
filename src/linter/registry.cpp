@@ -23,16 +23,43 @@ const LintRule *Registry::get(lintId id) {
   return getMap().at(id);
 }
 
-Registry::RuleMap::const_iterator Registry::begin() noexcept {
-  return getMap().begin();
-}
-
-Registry::RuleMap::const_iterator Registry::end() noexcept {
-  return getMap().end();
-}
-
 std::size_t Registry::size() noexcept {
   return getMap().size();
+}
+
+Registry::iterator Registry::Iter::begin() const noexcept {
+  return iterator(getMap().begin());
+}
+
+Registry::iterator Registry::Iter::end() const noexcept {
+  return iterator(getMap().end());
+}
+
+Registry::iterator &Registry::iterator::operator++() {
+  ++it;
+  return *this;
+}
+
+Registry::iterator Registry::iterator::operator++(int) {
+  iterator retval = *this;
+  ++(*this);
+  return retval;
+}
+
+bool Registry::iterator::operator==(Registry::iterator other) const {
+  return it == other.it;
+}
+
+bool Registry::iterator::operator!=(iterator other) const {
+  return !(*this == other);
+}
+
+Registry::iterator::reference Registry::iterator::operator*() const {
+  return it->second;
+}
+
+Registry::Iter Registry::iter() noexcept {
+  return Iter();
 }
 
 } // namespace LZN
