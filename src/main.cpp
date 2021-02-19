@@ -1,5 +1,6 @@
 #include <iostream>
 #include <linter/registry.hpp>
+#include <linter/stdoutprinter.hpp>
 #include <minizinc/file_utils.hh>
 #include <minizinc/parser.hh>
 
@@ -8,6 +9,7 @@ int main(int argc, const char *argv[]) {
   if (argc > 1) {
     filenames.push_back(argv[1]);
   } else {
+    std::cerr << "no file" << std::endl;
     return 1;
   }
 
@@ -25,9 +27,7 @@ int main(int argc, const char *argv[]) {
     rule->run(m, results);
   }
 
-  for (auto &r : results) {
-    std::cout << r.message << std::endl;
-  }
+  LZN::stdout_print(results);
 
   return 0;
 }
