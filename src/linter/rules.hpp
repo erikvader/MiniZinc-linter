@@ -2,6 +2,7 @@
 
 #include <minizinc/model.hh>
 #include <string>
+#include <variant>
 #include <vector>
 
 namespace LZN {
