@@ -32,7 +32,10 @@ void print_code(const std::string &filename, const LintResult::Region &region) {
     std::vector<std::string> lines;
     try {
       lines = lines_of_file(filename, startline, endline);
-    } catch (std::system_error &err) { std::cerr << err.what() << std::endl; }
+    } catch (std::system_error &err) {
+      std::cerr << rang::fgB::red << rang::style::bold << "Couldn't read file because '"
+                << err.what() << "'" << rang::style::reset << std::endl;
+    }
     return lines;
   };
 
@@ -49,7 +52,7 @@ void print_code(const std::string &filename, const LintResult::Region &region) {
                    if (line.empty())
                      return;
                    std::cout << prefix << line[0] << std::endl;
-                   std::cout << prefix << rang::fgB::blue << rang::style::bold;
+                   std::cout << prefix << rang::fgB::yellow << rang::style::bold;
                    print_marker(olm.startcol, olm.endcol);
                    std::cout << rang::style::reset << std::endl;
                  },
