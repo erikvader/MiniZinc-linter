@@ -24,21 +24,20 @@ private:
     EVisitor(ItemVisitor &ivis) : ivis(ivis) {}
     void vVarDecl(const MiniZinc::VarDecl &vd) {
       if (isNoDomainVar(vd)) {
-        // std::cout << vd << std::endl;
-        ivis.vardecs.push_back(&vd);
+        ivis.add(vd.loc());
       }
     }
   };
 
   EVisitor evis;
-  std::vector<const MiniZinc::VarDecl *> &vardecs;
+  std::function<void(const MiniZinc::Location &loc)> add;
 
 public:
-  ItemVisitor(std::vector<const MiniZinc::VarDecl *> &vardecs) : evis(*this), vardecs(vardecs) {}
+  ItemVisitor(std::function<void(const MiniZinc::Location &loc)> add) : evis(*this), add(add) {}
 
   void vVarDeclI(MiniZinc::VarDeclI *vdi) {
     if (isNoDomainVar(*vdi->e())) {
-      vardecs.push_back(vdi->e());
+      add(vdi->e()->loc());
     }
   }
   void vAssignI(MiniZinc::AssignI *ai) { top_down(evis, ai->e()); }
@@ -50,16 +49,13 @@ class NoDomainVarDecl : public LintRule {
 public:
   constexpr NoDomainVarDecl() : LintRule(13, "unbounded-variable") {}
   void run(MiniZinc::Model *model, std::vector<LintResult> &results) const override {
-    std::vector<const MiniZinc::VarDecl *> vardecs;
-    ItemVisitor ivis(vardecs);
-    MiniZinc::iter_items(ivis, model);
-
-    for (const auto &vd : vardecs) {
-      const auto &loc = vd->loc();
+    auto add = [&results, t = this](const MiniZinc::Location &loc) {
       results.emplace_back(
-          loc.filename().c_str(), this, "no explicit domain on variable declaration",
+          loc.filename().c_str(), t, "no explicit domain on variable declaration",
           LintResult::OneLineMarked{loc.firstLine(), loc.firstColumn(), loc.lastColumn()});
-    }
+    };
+    ItemVisitor ivis(add);
+    MiniZinc::iter_items(ivis, model);
   }
 };
 
