@@ -9,7 +9,7 @@ endif()
 option(LZN_FLAGS "Whether to activate my development flags" OFF)
 # Flags for everything:
 if(LZN_FLAGS)
-  set(CMAKE_CXX_FLAGS_DEBUG "-ggdb3")
+  set(CMAKE_CXX_FLAGS_DEBUG "-ggdb3 -Og")
 endif()
 
 # Flags for my files
