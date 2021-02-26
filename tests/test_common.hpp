@@ -22,19 +22,17 @@ inline constexpr const char *const MODEL_FILENAME = "testmodel";
   }
 
 // TODO: gc?
-#define LZN_TEST_CASE(name, tags, rule_id)                                                         \
-  TEST_CASE(name, tags) {                                                                          \
-    const LZN::LintRule *rule;                                                                     \
-    REQUIRE_NOTHROW(rule = LZN::Registry::get(rule_id));                                           \
-    std::stringstream errstream;                                                                   \
-    MiniZinc::Env env;                                                                             \
-    std::vector<LZN::LintResult> results;
+#define LZN_TEST_CASE_INIT(rule_id)                                                                \
+  const LZN::LintRule *rule;                                                                       \
+  REQUIRE_NOTHROW(rule = LZN::Registry::get(rule_id));                                             \
+  std::stringstream errstream;                                                                     \
+  MiniZinc::Env env;                                                                               \
+  std::vector<LZN::LintResult> results;
 
-#define LZN_END                                                                                    \
+#define LZN_TEST_CASE_END                                                                          \
   UNSCOPED_INFO("MiniZinc::parse printed some error");                                             \
   char buf;                                                                                        \
-  REQUIRE(errstream.readsome(&buf, 1) == 0);                                                       \
-  }
+  REQUIRE(errstream.readsome(&buf, 1) == 0);
 
 #define LZN_MODEL(s)                                                                               \
   rule->run(                                                                                       \
