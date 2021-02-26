@@ -48,14 +48,18 @@ public:
 class NoDomainVarDecl : public LintRule {
 public:
   constexpr NoDomainVarDecl() : LintRule(13, "unbounded-variable") {}
-  void run(MiniZinc::Model *model, std::vector<LintResult> &results) const override {
+
+private:
+  virtual void do_run(const MiniZinc::Model *model,
+                      std::vector<LintResult> &results) const override {
     auto add = [&results, t = this](const MiniZinc::Location &loc) {
       results.emplace_back(
           loc.filename().c_str(), t, "no explicit domain on variable declaration",
           LintResult::OneLineMarked{loc.firstLine(), loc.firstColumn(), loc.lastColumn()});
     };
     ItemVisitor ivis(add);
-    MiniZinc::iter_items(ivis, model);
+    // NOTE: assumes iter_items doesn't modify the model
+    MiniZinc::iter_items(ivis, const_cast<MiniZinc::Model *>(model));
   }
 };
 

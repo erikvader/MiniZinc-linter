@@ -10,19 +10,22 @@ namespace LZN {
 
 struct LintResult;
 
-typedef unsigned int lintId;
+using lintId = unsigned int;
 
 class LintRule {
 protected:
   constexpr LintRule(lintId id, const char *name) : id(id), name(name) {}
+  ~LintRule() = default;
 
 public:
   const lintId id;
   const char *const name;
-  virtual void run(MiniZinc::Model *model, std::vector<LintResult> &results) const = 0;
-  // NOTE: Can't have this if this class should be able to evaluate at compile time (constexpr).
-  // This means that the destructors of derived classes won't run through a base class pointer.
-  // virtual ~LintRule() = default;
+  void run(const MiniZinc::Model *model, std::vector<LintResult> &results) const {
+    do_run(model, results);
+  }
+
+private:
+  virtual void do_run(const MiniZinc::Model *model, std::vector<LintResult> &results) const = 0;
 };
 
 struct LintResult {
