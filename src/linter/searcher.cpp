@@ -2,18 +2,15 @@
 #include <minizinc/astiterator.hh>
 #include <minizinc/model.hh>
 
-// TODO: remove
-#include <minizinc/prettyprinter.hh>
-
 namespace {
 using namespace LZN;
 
 std::size_t children_of(const MiniZinc::Expression *root,
-                        std::vector<MiniZinc::Expression *> &results) {
+                        std::vector<const MiniZinc::Expression *> &results) {
   assert(root != nullptr);
 
   struct : MiniZinc::EVisitor {
-    std::vector<MiniZinc::Expression *> *results;
+    std::vector<const MiniZinc::Expression *> *results;
     std::size_t new_children = 0;
     const MiniZinc::Expression *root;
 
@@ -36,16 +33,16 @@ std::size_t children_of(const MiniZinc::Expression *root,
 }
 } // namespace
 
-namespace LZN {
+namespace LZN::Impl {
 
-bool SearchLocs::visit_item(const MiniZinc::Item *i) const {
+bool SearchLocs::should_visit(const MiniZinc::Item *i) const {
   assert(i != nullptr);
   using I = MiniZinc::Item;
   switch (i->iid()) {
-  case I::II_ASN: return use_ai;
+  case I::II_ASN: return use_ai_rhs || use_ai_decl;
   case I::II_VD: return use_vdi;
   case I::II_CON: return use_ci;
-  case I::II_FUN: return use_fi;
+  case I::II_FUN: return use_fi_body || use_fi_params || use_fi_return;
   case I::II_INC: return use_ii;
   case I::II_OUT: return use_oi;
   case I::II_SOL: return use_si;
@@ -54,7 +51,8 @@ bool SearchLocs::visit_item(const MiniZinc::Item *i) const {
 }
 
 bool SearchLocs::any() const {
-  return use_ii || use_vdi || use_ai || use_ci || use_si || use_oi || use_fi;
+  return use_ii || use_vdi || use_ai_rhs || use_ai_decl || use_ci || use_si || use_oi ||
+         use_fi_body || use_fi_params || use_fi_return;
 }
 
 bool SearchNode::match(const MiniZinc::Expression *i) const {
@@ -68,7 +66,84 @@ bool SearchNode::match(const MiniZinc::Expression *i) const {
   return right_expr;
 }
 
-bool Search::ModelSearcher::next_starting_point() {
+bool ExprSearcher::next() {
+  while (!dfs_stack.empty()) {
+    const MiniZinc::Expression *cur = dfs_stack.back();
+    dfs_stack.pop_back();
+
+    if (!path.empty() && path.back() == cur) {
+      path.pop_back();
+      if (!hits.empty() && hits.back() == cur) {
+        hits.pop_back();
+        --nodes_pos;
+        if (nodes[nodes_pos].is_under()) {
+          path.push_back(cur);
+          dfs_stack.push_back(cur);
+          children_of(cur, dfs_stack);
+        }
+      }
+      continue;
+    }
+
+    const SearchNode &tar = nodes[nodes_pos];
+    if (tar.match(cur)) {
+      hits.push_back(cur);
+      ++nodes_pos;
+    } else {
+      if (tar.is_direct()) {
+        continue;
+      }
+    }
+
+    path.push_back(cur);
+    dfs_stack.push_back(cur);
+    if (!has_result() || nodes.back().is_under()) {
+      children_of(cur, dfs_stack);
+    }
+
+    if (has_result())
+      return true;
+  }
+  return false;
+}
+
+const MiniZinc::Expression &ExprSearcher::capture(std::size_t n) const {
+  assert(hits.size() == nodes.size());
+  assert(has_result());
+  assert(n < hits.size());
+
+  for (std::size_t i = 0; i < hits.size(); ++i) {
+    if (nodes[i].capturable()) {
+      if (n == 0) {
+        return *hits[i];
+      }
+      --n;
+    }
+  }
+  throw std::logic_error("n is larger than the number of captures");
+}
+
+bool ExprSearcher::has_result() const noexcept {
+  return nodes_pos == nodes.size();
+}
+
+bool ExprSearcher::is_searching() const noexcept {
+  return !dfs_stack.empty();
+}
+
+void ExprSearcher::new_search(const MiniZinc::Expression *e) {
+  abort();
+  dfs_stack.push_back(e);
+}
+
+void ExprSearcher::abort() {
+  dfs_stack.clear();
+  path.clear();
+  hits.clear();
+  nodes_pos = 0;
+}
+
+bool ModelSearcher::next_starting_point() {
   assert(item_queue != item_queue_end);
   using I = MiniZinc::Item;
 
@@ -80,15 +155,15 @@ bool Search::ModelSearcher::next_starting_point() {
   case I::II_FUN: {
     auto f = cur->cast<MiniZinc::FunctionI>();
     if (item_child == 0) {
-      if (search.locations.fi_flags & SearchLocs::fi_body) {
+      if (search.locations.use_fi_body) {
         next = f->e();
       }
     } else if (item_child == 1) {
-      if (search.locations.fi_flags & SearchLocs::fi_return || search.locations.fi_flags == 0) {
+      if (search.locations.use_fi_return) {
         next = f->ti();
       }
     } else if (item_child - 2 < f->params().size()) {
-      if (search.locations.fi_flags & SearchLocs::fi_params) {
+      if (search.locations.use_fi_params) {
         next = f->params()[item_child - 2];
       }
     } else {
@@ -100,11 +175,11 @@ bool Search::ModelSearcher::next_starting_point() {
   case I::II_ASN: {
     auto f = cur->cast<MiniZinc::AssignI>();
     if (item_child == 0) {
-      if (search.locations.ai_flags & SearchLocs::ai_rhs || search.locations.ai_flags == 0) {
+      if (search.locations.use_ai_rhs) {
         next = f->e();
       }
     } else if (item_child == 1) {
-      if (search.locations.ai_flags & SearchLocs::ai_decl) {
+      if (search.locations.use_ai_decl) {
         next = f->decl();
       }
     } else {
@@ -145,88 +220,49 @@ bool Search::ModelSearcher::next_starting_point() {
   if (next == nullptr) {
     return next_starting_point();
   } else {
-    dfs_stack.push_back(next);
+    expr_searcher->new_search(next);
     return true;
   }
 }
 
-bool Search::ModelSearcher::next_item() {
+bool ModelSearcher::next_item() {
   assert(item_queue != item_queue_end);
   for (++item_queue, item_child = 0; item_queue != item_queue_end; ++item_queue, item_child = 0) {
     MiniZinc::Item *cur = *item_queue;
-    if (search.locations.visit_item(cur))
+    if (search.locations.should_visit(cur))
       return true;
   }
   return false;
 }
 
-void Search::ModelSearcher::search_cur_item() {
-  while (!dfs_stack.empty()) {
-    MiniZinc::Expression *cur = dfs_stack.back();
-    dfs_stack.pop_back();
+bool ModelSearcher::is_items_only() const noexcept {
+  return search.nodes.empty();
+}
 
-    if (!path.empty() && path.back() == cur) {
-      path.pop_back();
-      if (!hits.empty() && hits.back() == cur) {
-        hits.pop_back();
-        --nodes_pos;
-        if (search.nodes[nodes_pos].is_under()) {
-          path.push_back(cur);
-          dfs_stack.push_back(cur);
-          children_of(cur, dfs_stack);
-        }
-      }
-      continue;
-    }
-
-    const SearchNode &tar = search.nodes[nodes_pos];
-    if (tar.match(cur)) {
-      hits.push_back(cur);
-      ++nodes_pos;
-    } else {
-      if (tar.is_direct()) {
-        continue;
-      }
-    }
-
-    path.push_back(cur);
-    dfs_stack.push_back(cur);
-    if (!all_hits() || search.nodes.back().is_under()) {
-      children_of(cur, dfs_stack);
-    }
-
-    if (all_hits())
-      return;
+ModelSearcher::ModelSearcher(const MiniZinc::Model *m, const Search &search)
+    : model(m), search(search), item_queue(m->begin()), item_queue_end(m->end()), item_child(0) {
+  for (; item_queue != item_queue_end && !search.locations.should_visit(*item_queue);
+       ++item_queue) {}
+  if (!search.nodes.empty()) {
+    expr_searcher.emplace(search.nodes);
   }
 }
 
-bool Search::ModelSearcher::items_only() const noexcept {
-  return search.nodes.empty();
-}
-bool Search::ModelSearcher::all_hits() const noexcept {
-  assert(!items_only());
-  return nodes_pos == search.nodes.size();
-};
+} // namespace LZN::Impl
 
-Search::ModelSearcher::ModelSearcher(const MiniZinc::Model *m, const Search &search)
-    : model(m), search(search), item_queue(m->begin()), item_queue_end(m->end()), item_child(0),
-      nodes_pos(0) {
-  hits.reserve(search.nodes.size());
-  for (; item_queue != item_queue_end && !search.locations.visit_item(*item_queue); ++item_queue) {}
-}
+namespace LZN {
 
 bool Search::ModelSearcher::next() {
   if (item_queue == item_queue_end)
     return false;
 
-  if (items_only()) {
+  if (is_items_only()) {
     return next_item();
   }
 
-  if (dfs_stack.empty()) {
-    assert(path.empty());
-    assert(hits.empty());
-    assert(nodes_pos == 0);
+  assert(expr_searcher);
+
+  if (!expr_searcher->is_searching()) {
     while (!next_starting_point()) {
       if (!next_item()) {
         return false;
@@ -234,33 +270,22 @@ bool Search::ModelSearcher::next() {
     }
   }
 
-  search_cur_item();
-  if (all_hits())
+  expr_searcher->next();
+  if (expr_searcher->has_result())
     return true;
 
   return next();
 }
 
-const MiniZinc::Item *Search::ModelSearcher::inside_item() const noexcept {
-  assert(all_hits());
+const MiniZinc::Item *Search::ModelSearcher::cur_item() const noexcept {
   if (item_queue == item_queue_end)
     return nullptr;
   return *item_queue;
 }
 
 const MiniZinc::Expression &Search::ModelSearcher::capture(std::size_t n) const {
-  assert(hits.size() == search.nodes.size());
-  assert(all_hits());
-  assert(n >= 0 && n < hits.size());
-
-  for (std::size_t i = 0; i < hits.size(); ++i) {
-    if (search.nodes[i].capturable()) {
-      if (n == 0) {
-        return *hits[i];
-      }
-      --n;
-    }
-  }
-  throw std::logic_error("n is larger than the number of captures");
+  assert(!is_items_only());
+  assert(expr_searcher);
+  return expr_searcher->capture(n);
 }
 } // namespace LZN

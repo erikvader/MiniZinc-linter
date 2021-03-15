@@ -5,36 +5,38 @@
 #include <variant>
 
 namespace LZN {
+
 using ExpressionId = MiniZinc::Expression::ExpressionId;
 using MiniZinc::BinOpType;
 using ItemId = MiniZinc::Item::ItemId;
 using MiniZinc::UnOpType;
 
+class Search;
+
+} // namespace LZN
+
+namespace LZN::Impl {
+
 struct SearchLocs {
-  bool use_ii = false, use_vdi = false, use_ai = false, use_ci = false, use_si = false,
-       use_oi = false, use_fi = false;
-  int fi_flags = 0, ai_flags = 0;
+  bool use_ii = false, use_vdi = false, use_ci = false, use_si = false, use_oi = false;
+  bool use_fi_body = false, use_fi_params = false, use_fi_return = false;
+  bool use_ai_rhs = false, use_ai_decl = false;
 
-  enum {
-    fi_body = 0x1,
-    fi_params = 0x2,
-    fi_return = 0x4,
-    fi_all = fi_body | fi_params | fi_return
-  };
-  enum { ai_rhs = 0x1, ai_decl = 0x2, ai_all = ai_rhs | ai_decl };
-
-  bool visit_item(const MiniZinc::Item *i) const;
+  bool should_visit(const MiniZinc::Item *i) const;
   bool any() const;
 };
 
 class SearchNode {
-  enum Attachement { a_direct, a_under };
+public:
+  enum class Attachement { direct, under };
 
+private:
   Attachement att;
   ExpressionId target;
   std::variant<std::monostate, BinOpType, UnOpType> sub_target;
   bool be_captured;
 
+public:
   SearchNode(Attachement attachement, ExpressionId target)
       : att(attachement), target(target), sub_target(std::monostate()), be_captured(false) {}
   SearchNode(Attachement attachement, BinOpType bin_target)
@@ -43,74 +45,100 @@ class SearchNode {
   SearchNode(Attachement attachement, UnOpType un_target)
       : att(attachement), target(ExpressionId::E_UNOP), sub_target(un_target), be_captured(false) {}
 
-  friend class SearchBuilder;
-
-public:
   bool match(const MiniZinc::Expression *) const;
   bool capturable() const noexcept { return be_captured; }
-  bool is_direct() const noexcept { return att == Attachement::a_direct; }
+  void capturable(bool b) noexcept { be_captured = b; }
+  bool is_direct() const noexcept { return att == Attachement::direct; }
   bool is_under() const noexcept { return !is_direct(); }
 };
 
+class ExprSearcher {
+  const std::vector<SearchNode> &nodes;
+  std::vector<const MiniZinc::Expression *> path;
+  std::vector<const MiniZinc::Expression *> dfs_stack;
+  std::vector<const MiniZinc::Expression *> hits; // TODO: heap allocated array instead?
+  std::size_t nodes_pos;
+
+public:
+  ExprSearcher(const std::vector<SearchNode> &nodes) : nodes(nodes), nodes_pos(0) {
+    assert(!nodes.empty());
+    hits.reserve(nodes.size());
+  }
+  bool has_result() const noexcept;
+  bool is_searching() const noexcept;
+  const MiniZinc::Expression &capture(std::size_t n) const;
+  void new_search(const MiniZinc::Expression *);
+  void abort();
+  bool next();
+};
+
+class ModelSearcher {
+protected:
+  const MiniZinc::Model *model;
+  const Search &search;
+
+  std::optional<ExprSearcher> expr_searcher;
+  MiniZinc::Model::const_iterator item_queue;
+  const MiniZinc::Model::const_iterator item_queue_end;
+  std::size_t item_child;
+
+protected:
+  ModelSearcher(const MiniZinc::Model *m, const Search &search);
+  ModelSearcher(const MiniZinc::Expression *expr, const Search &search)
+      : model(nullptr), search(search) {
+    throw std::logic_error("not implemented");
+  };
+
+public:
+  ModelSearcher(const ModelSearcher &) = delete;
+  ModelSearcher &operator=(const ModelSearcher &) = delete;
+  ModelSearcher(ModelSearcher &&) = default;
+
+protected:
+  bool next_starting_point();
+  bool next_item();
+  bool is_items_only() const noexcept;
+};
+
+} // namespace LZN::Impl
+
+namespace LZN {
+
 class Search {
-  std::vector<SearchNode> nodes;
-  SearchLocs locations;
+  std::vector<Impl::SearchNode> nodes;
+  Impl::SearchLocs locations;
   std::size_t numcaptures;
 
-  Search(std::vector<SearchNode> nodes, SearchLocs locations, std::size_t numcaptures)
+  Search(std::vector<Impl::SearchNode> nodes, Impl::SearchLocs locations, std::size_t numcaptures)
       : nodes(std::move(nodes)), locations(std::move(locations)), numcaptures(numcaptures) {}
 
   friend class SearchBuilder;
-  friend class ModelSearcher;
+  friend class Impl::ModelSearcher;
 
-public:
-  class ModelSearcher {
-  public: // TODO: remove
-    const MiniZinc::Model *model;
-    const Search &search;
-
-    MiniZinc::Model::const_iterator item_queue;
-    const MiniZinc::Model::const_iterator item_queue_end;
-    std::size_t item_child;
-
-    std::vector<MiniZinc::Expression *> path;
-    std::vector<MiniZinc::Expression *> dfs_stack;
-
-    std::vector<MiniZinc::Expression *> hits; // TODO: heap allocated array instead?
-    std::size_t nodes_pos;
-
+  class ModelSearcher : private Impl::ModelSearcher {
     friend Search;
-    ModelSearcher(const MiniZinc::Model *m, const Search &search);
-    ModelSearcher(const MiniZinc::Expression *expr, const Search &search)
-        : model(nullptr), search(search) {
-      throw std::logic_error("not implemented");
-    };
 
-    bool next_starting_point();
-    bool next_item();
-    void search_cur_item();
-    bool items_only() const noexcept;
-    bool all_hits() const noexcept;
+    template <typename... Args>
+    ModelSearcher(Args &&...args) : Impl::ModelSearcher(std::forward<Args>(args)...) {}
 
   public:
-    ModelSearcher(const ModelSearcher &) = delete;
-    ModelSearcher &operator=(const ModelSearcher &) = delete;
-    ModelSearcher(ModelSearcher &&) = default;
-
     bool next();
-    const MiniZinc::Item *inside_item() const noexcept;
+    const MiniZinc::Item *cur_item() const noexcept;
     const MiniZinc::Expression &capture(std::size_t n) const;
   };
 
+public:
   ModelSearcher search(const MiniZinc::Model *m) const { return ModelSearcher(m, *this); }
   // TODO: have this? For chaining?
   ModelSearcher search(const MiniZinc::Expression *e) const { return ModelSearcher(e, *this); }
 };
 
 class SearchBuilder {
-  std::vector<SearchNode> nodes;
-  SearchLocs locations;
+  std::vector<Impl::SearchNode> nodes;
+  Impl::SearchLocs locations;
   std::size_t numcaptures;
+
+  using Attach = Impl::SearchNode::Attachement;
 
 public:
   using ExprFilterFun =
@@ -126,20 +154,34 @@ public:
     locations.use_ci = true;
     return *this;
   }
-  SearchBuilder &in_function(int flags = SearchLocs::fi_all) {
-    locations.use_fi = true;
-    locations.fi_flags = flags;
+  SearchBuilder &in_function_body() {
+    locations.use_fi_body = true;
     return *this;
+  }
+  SearchBuilder &in_function_params() {
+    locations.use_fi_params = true;
+    return *this;
+  }
+  SearchBuilder &in_function_return() {
+    locations.use_fi_return = true;
+    return *this;
+  }
+  SearchBuilder &in_function() {
+    return in_function_body().in_function_params().in_function_return();
   }
   SearchBuilder &in_vardecl() {
     locations.use_vdi = true;
     return *this;
   }
-  SearchBuilder &in_assign(int flags = SearchLocs::ai_all) {
-    locations.use_ai = true;
-    locations.ai_flags = flags;
+  SearchBuilder &in_assign_rhs() {
+    locations.use_ai_rhs = true;
     return *this;
   }
+  SearchBuilder &in_assign_decl() {
+    locations.use_ai_decl = true;
+    return *this;
+  }
+  SearchBuilder &in_assign() { return in_assign_rhs().in_assign_decl(); }
   SearchBuilder &in_solve() {
     locations.use_si = true;
     return *this;
@@ -153,28 +195,28 @@ public:
   SearchBuilder &filter(ExprFilterFun f) { return *this; }
 
   SearchBuilder &direct(ExpressionId eid) {
-    nodes.push_back(SearchNode(SearchNode::a_direct, eid));
+    nodes.emplace_back(Attach::direct, eid);
     return *this;
   }
   SearchBuilder &direct(BinOpType bot) {
-    nodes.push_back(SearchNode(SearchNode::a_direct, bot));
+    nodes.emplace_back(Attach::direct, bot);
     return *this;
   }
   SearchBuilder &direct(UnOpType uot) {
-    nodes.push_back(SearchNode(SearchNode::a_direct, uot));
+    nodes.emplace_back(Attach::direct, uot);
     return *this;
   }
 
   SearchBuilder &under(ExpressionId eid) {
-    nodes.push_back(SearchNode(SearchNode::a_under, eid));
+    nodes.emplace_back(Attach::under, eid);
     return *this;
   }
   SearchBuilder &under(BinOpType bot) {
-    nodes.push_back(SearchNode(SearchNode::a_under, bot));
+    nodes.emplace_back(Attach::under, bot);
     return *this;
   }
   SearchBuilder &under(UnOpType uot) {
-    nodes.push_back(SearchNode(SearchNode::a_under, uot));
+    nodes.emplace_back(Attach::under, uot);
     return *this;
   }
 
@@ -182,7 +224,7 @@ public:
     if (nodes.empty())
       throw std::logic_error("there is nothing to capture");
     ++numcaptures;
-    nodes.back().be_captured = true;
+    nodes.back().capturable(true);
     return *this;
   }
 
