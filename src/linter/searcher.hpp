@@ -6,11 +6,6 @@
 
 namespace LZN {
 
-using ExpressionId = MiniZinc::Expression::ExpressionId;
-using MiniZinc::BinOpType;
-using ItemId = MiniZinc::Item::ItemId;
-using MiniZinc::UnOpType;
-
 class Search;
 
 } // namespace LZN
@@ -30,6 +25,10 @@ class SearchNode {
 public:
   enum class Attachement { direct, under };
 
+  using ExpressionId = MiniZinc::Expression::ExpressionId;
+  using BinOpType = MiniZinc::BinOpType;
+  using UnOpType = MiniZinc::UnOpType;
+
 private:
   Attachement att;
   ExpressionId target;
@@ -37,13 +36,14 @@ private:
   bool be_captured;
 
 public:
-  SearchNode(Attachement attachement, ExpressionId target)
-      : att(attachement), target(target), sub_target(std::monostate()), be_captured(false) {}
-  SearchNode(Attachement attachement, BinOpType bin_target)
+  SearchNode(Attachement attachement, ExpressionId target, bool be_captured = false)
+      : att(attachement), target(target), sub_target(std::monostate()), be_captured(be_captured) {}
+  SearchNode(Attachement attachement, BinOpType bin_target, bool be_captured = false)
       : att(attachement), target(ExpressionId::E_BINOP), sub_target(bin_target),
-        be_captured(false) {}
-  SearchNode(Attachement attachement, UnOpType un_target)
-      : att(attachement), target(ExpressionId::E_UNOP), sub_target(un_target), be_captured(false) {}
+        be_captured(be_captured) {}
+  SearchNode(Attachement attachement, UnOpType un_target, bool be_captured = false)
+      : att(attachement), target(ExpressionId::E_UNOP), sub_target(un_target),
+        be_captured(be_captured) {}
 
   bool match(const MiniZinc::Expression *) const;
   bool capturable() const noexcept { return be_captured; }
@@ -66,7 +66,7 @@ public:
   }
   bool has_result() const noexcept;
   bool is_searching() const noexcept;
-  const MiniZinc::Expression &capture(std::size_t n) const;
+  const MiniZinc::Expression *capture(std::size_t n) const;
   void new_search(const MiniZinc::Expression *);
   void abort();
   bool next();
@@ -78,13 +78,14 @@ protected:
   const Search &search;
 
   std::optional<ExprSearcher> expr_searcher;
-  MiniZinc::Model::const_iterator item_queue;
+  std::optional<MiniZinc::Model::const_iterator> item_queue;
   const MiniZinc::Model::const_iterator item_queue_end;
   std::size_t item_child;
 
 protected:
   ModelSearcher(const MiniZinc::Model *m, const Search &search);
-  ModelSearcher(const MiniZinc::Expression *expr, const Search &search)
+  // TODO: implement this
+  ModelSearcher(const MiniZinc::Expression *, const Search &search)
       : model(nullptr), search(search) {
     throw std::logic_error("not implemented");
   };
@@ -124,7 +125,7 @@ class Search {
   public:
     bool next();
     const MiniZinc::Item *cur_item() const noexcept;
-    const MiniZinc::Expression &capture(std::size_t n) const;
+    const MiniZinc::Expression *capture(std::size_t n) const;
   };
 
 public:
@@ -143,6 +144,9 @@ class SearchBuilder {
 public:
   using ExprFilterFun =
       std::function<bool(const MiniZinc::Expression *, const MiniZinc::Expression *)>;
+  using ExpressionId = MiniZinc::Expression::ExpressionId;
+  using BinOpType = MiniZinc::BinOpType;
+  using UnOpType = MiniZinc::UnOpType;
 
   SearchBuilder() : numcaptures(0) {}
 
@@ -192,7 +196,7 @@ public:
   }
 
   // TODO: use to select more precisely what parts of all kinds of expressions to search in.
-  SearchBuilder &filter(ExprFilterFun f) { return *this; }
+  SearchBuilder &filter(ExprFilterFun) { return *this; }
 
   SearchBuilder &direct(ExpressionId eid) {
     nodes.emplace_back(Attach::direct, eid);
