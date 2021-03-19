@@ -4,6 +4,9 @@
 #include <minizinc/gc.hh>
 #include <minizinc/parser.hh>
 
+// TODO: remove
+#include <minizinc/prettyprinter.hh>
+
 namespace {
 using LZN::Search;
 using LZN::SearchBuilder;
@@ -26,6 +29,7 @@ MiniZinc::Model *parse(const char *file_contents) {
   MiniZinc::Env env;
   MiniZinc::Model *m = MiniZinc::parse(env, {}, {}, file_contents, "model_name", {}, false, true,
                                        false, false, errstream);
+  UNSCOPED_INFO("MiniZinc::parse printed some error");
   char buf;
   REQUIRE(errstream.readsome(&buf, 1) == 0);
   return m;
@@ -242,6 +246,39 @@ TEST_CASE("model searcher with ExprSearcher", "[util]") {
   CHECK(ms.cur_item() == nullptr);
 }
 
-// TODO: testa model searcher med funktioner i (next_start_point med flera start points per item)
-// TODO: testa model searcher med tom builder
-// TODO: testa model searcher med tom model
+TEST_CASE("model searcher empty builder", "[util]") {
+  MiniZinc::Model *m = parse("constraint 1+2+3+4+5 = x;");
+  Search s = SearchBuilder().build();
+  auto ms = s.search(m);
+  CHECK(ms.cur_item() == nullptr);
+  CHECK(!ms.next());
+  CHECK(ms.cur_item() == nullptr);
+}
+
+TEST_CASE("model searcher function", "[util]") {
+  MiniZinc::Model *m = parse("function var int: f(int: x, var int: y) = x = y;");
+
+  SECTION("all") {
+    Search s = SearchBuilder().in_function().under(ExpressionId::E_TI).build();
+    auto ms = s.search(m);
+    CHECK(number_of_results(ms) == 3);
+  }
+
+  SECTION("return") {
+    Search s = SearchBuilder().in_function_return().under(ExpressionId::E_TI).build();
+    auto ms = s.search(m);
+    CHECK(number_of_results(ms) == 1);
+  }
+
+  SECTION("parameters") {
+    Search s = SearchBuilder().in_function_params().under(ExpressionId::E_TI).build();
+    auto ms = s.search(m);
+    CHECK(number_of_results(ms) == 2);
+  }
+
+  SECTION("body") {
+    Search s = SearchBuilder().in_function_body().under(ExpressionId::E_TI).build();
+    auto ms = s.search(m);
+    CHECK(number_of_results(ms) == 0);
+  }
+}
