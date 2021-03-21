@@ -116,6 +116,7 @@ class Search {
   friend class SearchBuilder;
   friend class Impl::ModelSearcher;
 
+public:
   class ModelSearcher : private Impl::ModelSearcher {
     friend Search;
 
@@ -126,12 +127,18 @@ class Search {
     bool next();
     const MiniZinc::Item *cur_item() const noexcept;
     const MiniZinc::Expression *capture(std::size_t n) const;
+
+    template <typename F>
+    void for_each(F f) {
+      while (next()) {
+        f(*this);
+      }
+    }
   };
 
-public:
-  ModelSearcher search(const MiniZinc::Model *m) const { return ModelSearcher(m, *this); }
+  ModelSearcher search(const MiniZinc::Model *m) & { return ModelSearcher(m, *this); }
   // TODO: have this? For chaining?
-  ModelSearcher search(const MiniZinc::Expression *e) const { return ModelSearcher(e, *this); }
+  ModelSearcher search(const MiniZinc::Expression *e) & { return ModelSearcher(e, *this); }
 };
 
 class SearchBuilder {
