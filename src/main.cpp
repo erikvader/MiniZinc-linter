@@ -3,6 +3,7 @@
 #include <linter/stdoutprinter.hpp>
 #include <minizinc/file_utils.hh>
 #include <minizinc/parser.hh>
+#include <minizinc/typecheck.hh>
 
 int main(int argc, const char *argv[]) {
   std::vector<std::string> filenames;
@@ -10,17 +11,41 @@ int main(int argc, const char *argv[]) {
     filenames.push_back(argv[1]);
   } else {
     std::cerr << "no file" << std::endl;
-    return 1;
+    return EXIT_FAILURE;
   }
 
+  MiniZinc::GCLock lock;
   std::vector<std::string> includePaths = {
       MiniZinc::FileUtils::file_path(MiniZinc::FileUtils::share_directory()) + "/std/"};
   std::stringstream errstream;
   MiniZinc::Env env;
-  MiniZinc::Model *m = MiniZinc::parse(env, filenames, {}, "", "", includePaths, false, true, false,
-                                       false, errstream);
+  MiniZinc::Model *m = MiniZinc::parse(env, filenames, {}, "", "", includePaths, false, false,
+                                       false, false, errstream);
 
-  errstream >> std::cout.rdbuf();
+  char empty_check;
+  if (errstream.readsome(&empty_check, 1) == 1) {
+    std::cerr << "parse errors:" << std::endl;
+    std::cerr << empty_check;
+    errstream >> std::cerr.rdbuf();
+  }
+  if (m == nullptr)
+    return EXIT_FAILURE;
+
+  std::vector<MiniZinc::TypeError> typeErrors;
+  try {
+    MiniZinc::typecheck(env, m, typeErrors, true, false);
+  } catch (MiniZinc::TypeError &te) {
+    typeErrors.push_back(te);
+    ;
+  }
+  if (!typeErrors.empty()) {
+    std::cerr << "type errors:" << std::endl;
+    for (auto &te : typeErrors) {
+      std::cerr << te.loc() << ":" << std::endl;
+      std::cerr << te.what() << ": " << te.msg() << std::endl;
+    }
+    return EXIT_FAILURE;
+  }
 
   std::vector<LZN::LintResult> results;
   for (auto rule : LZN::Registry::iter()) {
@@ -29,5 +54,5 @@ int main(int argc, const char *argv[]) {
 
   LZN::stdout_print(results);
 
-  return 0;
+  return EXIT_SUCCESS;
 }
