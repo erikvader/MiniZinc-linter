@@ -31,8 +31,8 @@ TEST_CASE("no domain on variable declarations", "[rule]") {
 
   SECTION("assigned variable to another variable") {
     LZN_MODEL("var int: x;\n"
-              "var int: y = x;\n");
-    LZN_EXPECTED(LZN_ONELINE(1, 1, 10), LZN_ONELINE(2, 1, 10));
+              "var int: y = x+1;\n");
+    LZN_EXPECTED(LZN_ONELINE(1, 1, 10));
   }
 
   SECTION("assigned variable out of line") {
