@@ -4,9 +4,6 @@
 #include <minizinc/gc.hh>
 #include <minizinc/parser.hh>
 
-// TODO: remove
-#include <minizinc/prettyprinter.hh>
-
 namespace {
 using LZN::Search;
 using LZN::SearchBuilder;
@@ -281,4 +278,44 @@ TEST_CASE("model searcher function", "[util]") {
     auto ms = s.search(m);
     CHECK(number_of_results(ms) == 0);
   }
+}
+
+TEST_CASE("model searcher global filters", "[util]") {
+  MiniZinc::Model *m = parse("constraint A :: X = B + C");
+  Search s = SearchBuilder()
+                 .global_filter(LZN::filter_out_annotations)
+                 .in_constraint()
+                 .under(ExpressionId::E_ID)
+                 .capture()
+                 .build();
+  auto ms = s.search(m);
+  int results = 0;
+  while (ms.next()) {
+    ++results;
+    if (ms.capture(0)->cast<MiniZinc::Id>()->str() == "X")
+      FAIL_CHECK("didn't filter out X");
+  }
+  CHECK(results == 3);
+}
+
+TEST_CASE("model searcher local filters", "[util]") {
+  MiniZinc::Model *m = parse("constraint A :: X = B + C");
+  Search s = SearchBuilder()
+                 .in_constraint()
+                 .under(BinOpType::BOT_EQ)
+                 .filter([](const Expression *root, const Expression *child) {
+                   return root->cast<MiniZinc::BinOp>()->lhs() == child;
+                 })
+                 .under(ExpressionId::E_ID)
+                 .capture()
+                 .build();
+  auto ms = s.search(m);
+  int results = 0;
+  while (ms.next()) {
+    ++results;
+    const auto &id = ms.capture(0)->cast<MiniZinc::Id>()->str();
+    if (id == "B" || id == "C")
+      FAIL_CHECK("didn't filter out one of A and B");
+  }
+  CHECK(results == 2);
 }

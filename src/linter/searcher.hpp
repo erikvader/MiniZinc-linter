@@ -6,6 +6,10 @@
 
 namespace LZN {
 
+using ExprFilterFun = bool (*)(const MiniZinc::Expression *root, const MiniZinc::Expression *child);
+
+bool filter_out_annotations(const MiniZinc::Expression *root, const MiniZinc::Expression *child);
+
 class Search;
 
 } // namespace LZN
@@ -34,6 +38,7 @@ private:
   ExpressionId target;
   std::variant<std::monostate, BinOpType, UnOpType> sub_target;
   bool be_captured;
+  std::optional<ExprFilterFun> filter_fun;
 
 public:
   SearchNode(Attachement attachement, ExpressionId target, bool be_captured = false)
@@ -50,17 +55,22 @@ public:
   void capturable(bool b) noexcept { be_captured = b; }
   bool is_direct() const noexcept { return att == Attachement::direct; }
   bool is_under() const noexcept { return !is_direct(); }
+  void filter(ExprFilterFun f) noexcept { filter_fun = f; }
+  bool run_filter(const MiniZinc::Expression *p, const MiniZinc::Expression *child) const;
 };
 
 class ExprSearcher {
   const std::vector<SearchNode> &nodes;
+  const std::vector<ExprFilterFun> *global_filters;
   std::vector<const MiniZinc::Expression *> path;
   std::vector<const MiniZinc::Expression *> dfs_stack;
   std::vector<const MiniZinc::Expression *> hits; // TODO: heap allocated array instead?
   std::size_t nodes_pos;
 
 public:
-  ExprSearcher(const std::vector<SearchNode> &nodes) : nodes(nodes), nodes_pos(0) {
+  ExprSearcher(const std::vector<SearchNode> &nodes,
+               const std::vector<ExprFilterFun> *global_filters = nullptr)
+      : nodes(nodes), global_filters(global_filters), nodes_pos(0) {
     assert(!nodes.empty());
     hits.reserve(nodes.size());
   }
@@ -70,6 +80,9 @@ public:
   void new_search(const MiniZinc::Expression *);
   void abort();
   bool next();
+
+private:
+  void queue_children_of(const MiniZinc::Expression *cur);
 };
 
 class ModelSearcher {
@@ -109,9 +122,14 @@ class Search {
   std::vector<Impl::SearchNode> nodes;
   Impl::SearchLocs locations;
   std::size_t numcaptures;
+  std::vector<ExprFilterFun> global_filters;
 
-  Search(std::vector<Impl::SearchNode> nodes, Impl::SearchLocs locations, std::size_t numcaptures)
-      : nodes(std::move(nodes)), locations(std::move(locations)), numcaptures(numcaptures) {}
+  Search(std::vector<Impl::SearchNode> nodes, Impl::SearchLocs locations, std::size_t numcaptures,
+         std::vector<ExprFilterFun> global_filters)
+      : nodes(std::move(nodes)), locations(std::move(locations)), numcaptures(numcaptures),
+        global_filters(std::move(global_filters)) {}
+
+  bool should_visit(const MiniZinc::Expression *p, const MiniZinc::Expression *child) const;
 
   friend class SearchBuilder;
   friend class Impl::ModelSearcher;
@@ -145,12 +163,11 @@ class SearchBuilder {
   std::vector<Impl::SearchNode> nodes;
   Impl::SearchLocs locations;
   std::size_t numcaptures;
+  std::vector<ExprFilterFun> global_filters;
 
   using Attach = Impl::SearchNode::Attachement;
 
 public:
-  using ExprFilterFun =
-      std::function<bool(const MiniZinc::Expression *, const MiniZinc::Expression *)>;
   using ExpressionId = MiniZinc::Expression::ExpressionId;
   using BinOpType = MiniZinc::BinOpType;
   using UnOpType = MiniZinc::UnOpType;
@@ -202,8 +219,17 @@ public:
     return *this;
   }
 
-  // TODO: use to select more precisely what parts of all kinds of expressions to search in.
-  SearchBuilder &filter(ExprFilterFun) { return *this; }
+  SearchBuilder &global_filter(ExprFilterFun f) {
+    global_filters.push_back(f);
+    return *this;
+  }
+
+  SearchBuilder &filter(ExprFilterFun f) {
+    if (nodes.empty())
+      throw std::logic_error("there is nothing to add a filter to");
+    nodes.back().filter(f);
+    return *this;
+  }
 
   SearchBuilder &direct(ExpressionId eid) {
     nodes.emplace_back(Attach::direct, eid);
@@ -239,6 +265,8 @@ public:
     return *this;
   }
 
-  Search build() { return Search(std::move(nodes), std::move(locations), numcaptures); }
+  Search build() {
+    return Search(std::move(nodes), std::move(locations), numcaptures, std::move(global_filters));
+  }
 };
 } // namespace LZN
