@@ -68,7 +68,7 @@ TEST_CASE("no domain on variable declarations", "[rule]") {
   SECTION("inside predicate") {
     LZN_MODEL("predicate asd() = let {\n"
               "    var float : g ::bounds;\n"
-              "} in g mod 2 = 0;\n");
+              "} in g / 2.0 = 0.0;\n");
     LZN_EXPECTED(LZN_ONELINE(2, 5, 17));
   }
 

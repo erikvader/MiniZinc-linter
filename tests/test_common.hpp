@@ -3,6 +3,7 @@
 #include <catch2/catch.hpp>
 #include <linter/registry.hpp>
 #include <minizinc/parser.hh>
+#include <minizinc/typecheck.hh>
 #include <vector>
 
 inline constexpr const char *const MODEL_FILENAME = "testmodel";
@@ -22,7 +23,9 @@ inline constexpr const char *const MODEL_FILENAME = "testmodel";
   }
 
 // TODO: gc?
+// TODO: statically specify includePaths from CMAKE
 #define LZN_TEST_CASE_INIT(rule_id)                                                                \
+  std::vector<std::string> includePaths = {"../../deps/libminizinc/share/minizinc/std/"};          \
   const LZN::LintRule *rule;                                                                       \
   REQUIRE_NOTHROW(rule = LZN::Registry::get(rule_id));                                             \
   std::stringstream errstream;                                                                     \
@@ -35,9 +38,14 @@ inline constexpr const char *const MODEL_FILENAME = "testmodel";
   REQUIRE(errstream.readsome(&buf, 1) == 0);
 
 #define LZN_MODEL(s)                                                                               \
-  rule->run(                                                                                       \
-      MiniZinc::parse(env, {}, {}, (s), MODEL_FILENAME, {}, false, true, false, false, errstream), \
-      results)
+  MiniZinc::Model *model = MiniZinc::parse(env, {}, {}, (s), MODEL_FILENAME, includePaths, false,  \
+                                           false, false, false, errstream);                        \
+  if (model == nullptr)                                                                            \
+    errstream >> std::cerr.rdbuf();                                                                \
+  assert(model != nullptr);                                                                        \
+  std::vector<MiniZinc::TypeError> typeErrors;                                                     \
+  MiniZinc::typecheck(env, model, typeErrors, true, false);                                        \
+  rule->run(model, results)
 
 #define LZN_ONELINE(...)                                                                           \
   LZN::LintResult(MODEL_FILENAME, rule, "", LZN::LintResult::OneLineMarked{__VA_ARGS__})
