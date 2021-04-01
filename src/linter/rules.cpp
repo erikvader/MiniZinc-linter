@@ -14,4 +14,8 @@ std::ostream &operator<<(std::ostream &os, const LintResult &value) {
              value.region);
   return os;
 }
+
+void LintEnv::add_result(LintResult lr) {
+  _results.push_back(std::move(lr));
+}
 } // namespace LZN

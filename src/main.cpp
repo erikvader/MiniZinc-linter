@@ -47,12 +47,12 @@ int main(int argc, const char *argv[]) {
     return EXIT_FAILURE;
   }
 
-  std::vector<LZN::LintResult> results;
+  LZN::LintEnv lenv(m);
   for (auto rule : LZN::Registry::iter()) {
-    rule->run(m, results);
+    rule->run(lenv);
   }
 
-  LZN::stdout_print(results);
+  LZN::stdout_print(lenv.results());
 
   return EXIT_SUCCESS;
 }

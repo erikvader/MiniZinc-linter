@@ -45,7 +45,9 @@ inline constexpr const char *const MODEL_FILENAME = "testmodel";
   assert(model != nullptr);                                                                        \
   std::vector<MiniZinc::TypeError> typeErrors;                                                     \
   MiniZinc::typecheck(env, model, typeErrors, true, false);                                        \
-  rule->run(model, results)
+  LZN::LintEnv lenv(model);                                                                        \
+  rule->run(lenv);                                                                                 \
+  results = lenv.take_results();
 
 #define LZN_ONELINE(...)                                                                           \
   LZN::LintResult(MODEL_FILENAME, rule, "", LZN::LintResult::OneLineMarked{__VA_ARGS__})

@@ -21,8 +21,7 @@ public:
 private:
   using ExpressionId = MiniZinc::Expression::ExpressionId;
 
-  virtual void do_run(const MiniZinc::Model *model,
-                      std::vector<LintResult> &results) const override {
+  virtual void do_run(LintEnv &env) const override {
     auto s = SearchBuilder()
                  .in_vardecl()
                  .in_assign_rhs()
@@ -32,11 +31,11 @@ private:
                  .capture()
                  .build();
 
-    s.search(model).for_each([&results, t = this](const Search::ModelSearcher &ms) {
+    s.search(env.model()).for_each([&env, t = this](const Search::ModelSearcher &ms) {
       auto &vd = *ms.capture(0)->cast<MiniZinc::VarDecl>();
       if (isNoDomainVar(vd) && vd.e() == nullptr) {
         auto &loc = vd.loc();
-        results.emplace_back(
+        env.add_result(
             loc.filename().c_str(), t, "no explicit domain on variable declaration",
             LintResult::OneLineMarked{loc.firstLine(), loc.firstColumn(), loc.lastColumn()});
       }

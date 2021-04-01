@@ -12,6 +12,24 @@ struct LintResult;
 
 using lintId = unsigned int;
 
+class LintEnv {
+  const MiniZinc::Model *_model;
+  std::vector<LintResult> _results;
+
+public:
+  LintEnv(const MiniZinc::Model *model) : _model(model) {}
+
+  template <typename... Args>
+  void add_result(Args &&...args) {
+    _results.emplace_back(std::forward<Args>(args)...);
+  }
+  void add_result(LintResult lr);
+
+  const std::vector<LintResult> &results() & { return _results; }
+  std::vector<LintResult> &&take_results() { return std::move(_results); }
+  const MiniZinc::Model *model() const { return _model; }
+};
+
 class LintRule {
 protected:
   constexpr LintRule(lintId id, const char *name) : id(id), name(name) {}
@@ -20,12 +38,10 @@ protected:
 public:
   const lintId id;
   const char *const name;
-  void run(const MiniZinc::Model *model, std::vector<LintResult> &results) const {
-    do_run(model, results);
-  }
+  void run(LintEnv &env) const { do_run(env); }
 
 private:
-  virtual void do_run(const MiniZinc::Model *model, std::vector<LintResult> &results) const = 0;
+  virtual void do_run(LintEnv &env) const = 0;
 };
 
 struct LintResult {
