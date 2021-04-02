@@ -3,6 +3,7 @@
 #include <minizinc/model.hh>
 #include <string>
 #include <tuple>
+#include <unordered_map>
 #include <variant>
 #include <vector>
 
@@ -16,6 +17,9 @@ class LintEnv {
   const MiniZinc::Model *_model;
   std::vector<LintResult> _results;
 
+  using ECMap = std::unordered_map<const MiniZinc::VarDecl *, const MiniZinc::Expression *>;
+  std::optional<ECMap> _equal_constrained;
+
 public:
   LintEnv(const MiniZinc::Model *model) : _model(model) {}
 
@@ -28,6 +32,10 @@ public:
   const std::vector<LintResult> &results() & { return _results; }
   std::vector<LintResult> &&take_results() { return std::move(_results); }
   const MiniZinc::Model *model() const { return _model; }
+
+  const ECMap &equal_constrained();
+
+  const MiniZinc::Expression *get_equal_constrained_rhs(const MiniZinc::VarDecl *);
 };
 
 class LintRule {

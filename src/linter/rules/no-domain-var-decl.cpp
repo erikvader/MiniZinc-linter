@@ -32,9 +32,11 @@ private:
                  .build();
 
     s.search(env.model()).for_each([&env, t = this](const Search::ModelSearcher &ms) {
-      auto &vd = *ms.capture(0)->cast<MiniZinc::VarDecl>();
-      if (isNoDomainVar(vd) && vd.e() == nullptr) {
-        auto &loc = vd.loc();
+      auto vd = ms.capture(0)->cast<MiniZinc::VarDecl>();
+
+      if (isNoDomainVar(*vd) && vd->e() == nullptr &&
+          env.get_equal_constrained_rhs(vd) == nullptr) {
+        auto &loc = vd->loc();
         env.add_result(
             loc.filename().c_str(), t, "no explicit domain on variable declaration",
             LintResult::OneLineMarked{loc.firstLine(), loc.firstColumn(), loc.lastColumn()});
