@@ -107,6 +107,7 @@ public:
   ModelSearcher(const ModelSearcher &) = delete;
   ModelSearcher &operator=(const ModelSearcher &) = delete;
   ModelSearcher(ModelSearcher &&) = default;
+  ModelSearcher &operator=(ModelSearcher &&) = delete;
 
 protected:
   bool next_starting_point();
@@ -138,8 +139,7 @@ public:
   class ModelSearcher : private Impl::ModelSearcher {
     friend Search;
 
-    template <typename... Args>
-    ModelSearcher(Args &&...args) : Impl::ModelSearcher(std::forward<Args>(args)...) {}
+    using Impl::ModelSearcher::ModelSearcher;
 
   public:
     bool next();
@@ -154,9 +154,30 @@ public:
     }
   };
 
-  ModelSearcher search(const MiniZinc::Model *m) & { return ModelSearcher(m, *this); }
-  // TODO: have this? For chaining?
-  ModelSearcher search(const MiniZinc::Expression *e) & { return ModelSearcher(e, *this); }
+  class ExpressionSearcher : private Impl::ExprSearcher {
+    friend Search;
+
+  private:
+    ExpressionSearcher(const std::vector<Impl::SearchNode> &nodes,
+                       const std::vector<ExprFilterFun> *global_filters,
+                       const MiniZinc::Expression *e)
+        : Impl::ExprSearcher(nodes, global_filters) {
+      new_search(e);
+    }
+
+  public:
+    bool next() { return Impl::ExprSearcher::next(); }
+    const MiniZinc::Expression *capture(std::size_t n) const {
+      return Impl::ExprSearcher::capture(n);
+    }
+  };
+
+  ModelSearcher search(const MiniZinc::Model *m) const & { return ModelSearcher(m, *this); }
+  ModelSearcher search(const MiniZinc::Model *) && = delete;
+  ExpressionSearcher search(const MiniZinc::Expression *e) const & {
+    return ExpressionSearcher(nodes, &global_filters, e);
+  }
+  ExpressionSearcher search(const MiniZinc::Expression *) && = delete;
 };
 
 class SearchBuilder {
