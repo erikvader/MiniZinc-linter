@@ -65,6 +65,13 @@ TEST_CASE("no domain on variable declarations", "[rule]") {
     LZN_EXPECTED();
   }
 
+  SECTION("assigned and constrained arrays") {
+    LZN_MODEL("array[1..5] of var int: varar = [1,2,3,4,5];"
+              "array[1..5] of var int: varar2;"
+              "constraint [1,2,3,4,5] = varar2;");
+    LZN_EXPECTED();
+  }
+
   SECTION("inside predicate") {
     LZN_MODEL("predicate asd() = let {\n"
               "    var float : g ::bounds;\n"
