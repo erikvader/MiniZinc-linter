@@ -19,29 +19,17 @@ public:
   constexpr NoDomainVarDecl() : LintRule(13, "unbounded-variable") {}
 
 private:
-  using ExpressionId = MiniZinc::Expression::ExpressionId;
-
   virtual void do_run(LintEnv &env) const override {
-    auto s = SearchBuilder()
-                 .in_vardecl()
-                 .in_assign_rhs()
-                 .in_constraint()
-                 .in_function_body()
-                 .under(ExpressionId::E_VARDECL)
-                 .capture()
-                 .build();
-
-    s.search(env.model()).for_each([&env, t = this](const Search::ModelSearcher &ms) {
-      auto vd = ms.capture(0)->cast<MiniZinc::VarDecl>();
-
+    for (const MiniZinc::VarDecl *vd : env.variable_declarations()) {
+      // TODO: what if array that doesn't cover all values?
       if (isNoDomainVar(*vd) && vd->e() == nullptr &&
           env.get_equal_constrained_rhs(vd) == nullptr) {
         auto &loc = vd->loc();
         env.add_result(
-            loc.filename().c_str(), t, "no explicit domain on variable declaration",
+            loc.filename().c_str(), this, "no explicit domain on variable declaration",
             LintResult::OneLineMarked{loc.firstLine(), loc.firstColumn(), loc.lastColumn()});
       }
-    });
+    }
   }
 };
 

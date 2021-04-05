@@ -19,6 +19,9 @@ class LintEnv {
 
   using ECMap = std::unordered_map<const MiniZinc::VarDecl *, const MiniZinc::Expression *>;
   std::optional<ECMap> _equal_constrained;
+  using VDVec = std::vector<const MiniZinc::VarDecl *>;
+  std::optional<VDVec> _vardecls;
+  // TODO: hitta alla array[i] = asd
 
 public:
   LintEnv(const MiniZinc::Model *model) : _model(model) {}
@@ -34,6 +37,7 @@ public:
   const MiniZinc::Model *model() const { return _model; }
 
   const ECMap &equal_constrained();
+  const VDVec &variable_declarations();
 
   const MiniZinc::Expression *get_equal_constrained_rhs(const MiniZinc::VarDecl *);
 };

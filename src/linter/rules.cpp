@@ -32,17 +32,17 @@ void LintEnv::add_result(LintResult lr) {
 
 const LintEnv::ECMap &LintEnv::equal_constrained() {
   return lazy_value(_equal_constrained, [model = _model]() {
-    auto s = SearchBuilder()
-                 .global_filter(filter_out_annotations)
-                 // TODO: look for constraints in let
-                 // .in_vardecl()
-                 // .in_assign_rhs()
-                 // .in_function_body()
-                 .in_constraint()
-                 .under(MiniZinc::BinOpType::BOT_EQ)
-                 .capture()
-                 .direct(MiniZinc::Expression::E_ID)
-                 .build();
+    const auto s = SearchBuilder()
+                       .global_filter(filter_out_annotations)
+                       // TODO: look for constraints in let
+                       // .in_vardecl()
+                       // .in_assign_rhs()
+                       // .in_function_body()
+                       .in_constraint()
+                       .under(MiniZinc::BinOpType::BOT_EQ)
+                       .capture()
+                       .direct(MiniZinc::Expression::E_ID)
+                       .build();
     auto ms = s.search(model);
 
     LintEnv::ECMap ids;
@@ -60,6 +60,27 @@ const LintEnv::ECMap &LintEnv::equal_constrained() {
       }
     }
     return ids;
+  });
+}
+
+const LintEnv::VDVec &LintEnv::variable_declarations() {
+  using ExpressionId = MiniZinc::Expression::ExpressionId;
+  return lazy_value(_vardecls, [model = _model]() {
+    const auto s = SearchBuilder()
+                       .in_vardecl()
+                       .in_assign_rhs()
+                       .in_constraint()
+                       .in_function_body()
+                       .under(ExpressionId::E_VARDECL)
+                       .capture()
+                       .build();
+    auto ms = s.search(model);
+
+    LintEnv::VDVec vec;
+    while (ms.next()) {
+      vec.push_back(ms.capture(0)->cast<MiniZinc::VarDecl>());
+    }
+    return vec;
   });
 }
 
