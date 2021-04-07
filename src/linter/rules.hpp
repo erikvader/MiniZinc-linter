@@ -15,16 +15,24 @@ using lintId = unsigned int;
 
 class LintEnv {
   const MiniZinc::Model *_model;
+  MiniZinc::Env &_env;
   std::vector<LintResult> _results;
 
   using ECMap = std::unordered_map<const MiniZinc::VarDecl *, const MiniZinc::Expression *>;
   std::optional<ECMap> _equal_constrained;
   using VDVec = std::vector<const MiniZinc::VarDecl *>;
   std::optional<VDVec> _vardecls;
-  // TODO: hitta alla array[i] = asd
+
+  struct AECValue {
+    const MiniZinc::ArrayAccess *arrayaccess;
+    const MiniZinc::Expression *rhs;
+    const MiniZinc::Comprehension *comp;
+  };
+  using AECMap = std::unordered_multimap<const MiniZinc::VarDecl *, AECValue>;
+  std::optional<AECMap> _array_equal_constrained;
 
 public:
-  LintEnv(const MiniZinc::Model *model) : _model(model) {}
+  LintEnv(const MiniZinc::Model *model, MiniZinc::Env &env) : _model(model), _env(env) {}
 
   template <typename... Args>
   void add_result(Args &&...args) {
@@ -38,6 +46,7 @@ public:
 
   const ECMap &equal_constrained();
   const VDVec &variable_declarations();
+  const AECMap &array_equal_constrained();
 
   const MiniZinc::Expression *get_equal_constrained_rhs(const MiniZinc::VarDecl *);
   // is every index in the array touched from constraints?
@@ -93,6 +102,9 @@ struct LintResult {
 
   typedef std::variant<OneLineMarked, MultiLine, None> Region;
   Region region;
+
+  // TODO:
+  // std::vector<std::unique_ptr<LintResult>> sub_results;
 
   LintResult(std::string filename, const LintRule *rule, std::string message, Region region)
       : filename(std::move(filename)), rule(rule), message(std::move(message)),

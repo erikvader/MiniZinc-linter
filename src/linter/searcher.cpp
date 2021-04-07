@@ -334,4 +334,13 @@ bool filter_out_annotations(const MiniZinc::Expression *root, const MiniZinc::Ex
   return !std::any_of(root->ann().begin(), root->ann().end(),
                       [child](const MiniZinc::Expression *i) { return i == child; });
 }
+
+bool filter_arrayaccess_name(const MiniZinc::Expression *root, const MiniZinc::Expression *child) {
+  return root->cast<MiniZinc::ArrayAccess>()->v() == child;
+}
+
+bool filter_comprehension_expr(const MiniZinc::Expression *root,
+                               const MiniZinc::Expression *child) {
+  return root->cast<MiniZinc::Comprehension>()->e() == child;
+}
 } // namespace LZN

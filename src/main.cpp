@@ -47,7 +47,7 @@ int main(int argc, const char *argv[]) {
     return EXIT_FAILURE;
   }
 
-  LZN::LintEnv lenv(m);
+  LZN::LintEnv lenv(m, env);
   for (auto rule : LZN::Registry::iter()) {
     rule->run(lenv);
   }

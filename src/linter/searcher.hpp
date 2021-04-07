@@ -9,6 +9,8 @@ namespace LZN {
 using ExprFilterFun = bool (*)(const MiniZinc::Expression *root, const MiniZinc::Expression *child);
 
 bool filter_out_annotations(const MiniZinc::Expression *root, const MiniZinc::Expression *child);
+bool filter_arrayaccess_name(const MiniZinc::Expression *root, const MiniZinc::Expression *child);
+bool filter_comprehension_expr(const MiniZinc::Expression *root, const MiniZinc::Expression *child);
 
 class Search;
 
@@ -146,11 +148,9 @@ public:
     const MiniZinc::Item *cur_item() const noexcept;
     const MiniZinc::Expression *capture(std::size_t n) const;
 
-    template <typename F>
-    void for_each(F f) {
-      while (next()) {
-        f(*this);
-      }
+    template <typename T>
+    const T *capture_cast(std::size_t n) const {
+      return capture(n)->cast<T>();
     }
   };
 
@@ -169,6 +169,10 @@ public:
     bool next() { return Impl::ExprSearcher::next(); }
     const MiniZinc::Expression *capture(std::size_t n) const {
       return Impl::ExprSearcher::capture(n);
+    }
+    template <typename T>
+    const T *capture_cast(std::size_t n) const {
+      return capture(n)->cast<T>();
     }
   };
 

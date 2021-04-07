@@ -85,6 +85,71 @@ const LintEnv::VDVec &LintEnv::variable_declarations() {
   });
 }
 
+const LintEnv::AECMap &LintEnv::array_equal_constrained() {
+  return lazy_value(_array_equal_constrained, [model = _model]() {
+    LintEnv::AECMap map;
+
+    {
+      const auto s = LZN::SearchBuilder()
+                         .in_constraint()
+                         .direct(MiniZinc::Expression::E_CALL)
+                         .capture()
+                         .direct(MiniZinc::Expression::E_COMP)
+                         .capture()
+                         .filter(filter_comprehension_expr)
+                         .direct(MiniZinc::BinOpType::BOT_EQ)
+                         .capture()
+                         .direct(MiniZinc::Expression::E_ARRAYACCESS)
+                         .capture()
+                         .filter(filter_arrayaccess_name)
+                         .direct(MiniZinc::Expression::E_ID)
+                         .capture()
+                         .build();
+      auto forallsearcher = s.search(model);
+
+      while (forallsearcher.next()) {
+        const auto forall = forallsearcher.capture_cast<MiniZinc::Call>(0);
+        if (forall->id().size() != 6 && std::strncmp(forall->id().c_str(), "forall", 6) != 0)
+          continue;
+
+        const auto comp = forallsearcher.capture_cast<MiniZinc::Comprehension>(1);
+        const auto eq = forallsearcher.capture_cast<MiniZinc::BinOp>(2);
+        const auto access = forallsearcher.capture_cast<MiniZinc::ArrayAccess>(3);
+        const auto decl = forallsearcher.capture_cast<MiniZinc::Id>(4)->decl();
+        assert(decl != nullptr);
+        const MiniZinc::Expression *rhs = eq->rhs() == access ? eq->lhs() : eq->rhs();
+
+        map.emplace(decl, AECValue{access, rhs, comp});
+      }
+    }
+
+    {
+      const auto s = LZN::SearchBuilder()
+                         .in_constraint()
+                         .direct(MiniZinc::BinOpType::BOT_EQ)
+                         .capture()
+                         .direct(MiniZinc::Expression::E_ARRAYACCESS)
+                         .capture()
+                         .filter(filter_arrayaccess_name)
+                         .direct(MiniZinc::Expression::E_ID)
+                         .capture()
+                         .build();
+      auto individualsearcher = s.search(model);
+
+      while (individualsearcher.next()) {
+        const auto eq = individualsearcher.capture_cast<MiniZinc::BinOp>(0);
+        const auto access = individualsearcher.capture_cast<MiniZinc::ArrayAccess>(1);
+        const auto decl = individualsearcher.capture_cast<MiniZinc::Id>(2)->decl();
+        const MiniZinc::Expression *rhs = eq->rhs() == access ? eq->lhs() : eq->rhs();
+        assert(decl != nullptr);
+        map.emplace(decl, AECValue{access, rhs, nullptr});
+      }
+    }
+
+    return map;
+  });
+}
+
 const MiniZinc::Expression *LintEnv::get_equal_constrained_rhs(const MiniZinc::VarDecl *vd) {
   const auto &map = equal_constrained();
   auto it = map.find(vd);
