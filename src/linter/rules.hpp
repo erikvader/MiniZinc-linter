@@ -35,7 +35,7 @@ public:
   LintEnv(const MiniZinc::Model *model, MiniZinc::Env &env) : _model(model), _env(env) {}
 
   template <typename... Args>
-  void add_result(Args &&...args) {
+  void emplace_result(Args &&...args) {
     _results.emplace_back(std::forward<Args>(args)...);
   }
   void add_result(LintResult lr);
@@ -95,20 +95,19 @@ struct LintResult {
     };
   };
 
-  struct None {
-    bool operator==(const None &) const noexcept { return true; };
-    bool operator<(const None &) const noexcept { return false; };
-  };
-
-  typedef std::variant<OneLineMarked, MultiLine, None> Region;
+  typedef std::variant<std::monostate, OneLineMarked, MultiLine> Region;
   Region region;
-
-  // TODO:
-  // std::vector<std::unique_ptr<LintResult>> sub_results;
+  std::vector<LintResult> sub_results;
 
   LintResult(std::string filename, const LintRule *rule, std::string message, Region region)
       : filename(std::move(filename)), rule(rule), message(std::move(message)),
         region(std::move(region)) {}
+
+  void add_subresult(LintResult lr) { sub_results.push_back(std::move(lr)); }
+  template <typename... Args>
+  void emplace_subresult(Args &&...args) {
+    sub_results.emplace_back(std::forward<Args>(args)...);
+  }
 
   // Are equal if both reference the same rule on the same place (doesn't care about message).
   bool operator==(const LintResult &other) const noexcept {

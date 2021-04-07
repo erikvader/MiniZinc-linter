@@ -18,11 +18,20 @@ void print_marker(unsigned int startcol, unsigned int endcol) {
 }
 
 // TODO: remove indentation from the lines printed directly from the file
-void print_code(const std::string &filename, const LintResult::Region &region) {
-  constexpr const char *const prefix = "   |     ";
+void print_code(const std::string &filename, const LintResult::Region &region,
+                bool is_subresult = false) {
 
-  if (std::holds_alternative<LintResult::None>(region)) {
-    std::cout << prefix << std::endl;
+  bool first_prefix = true;
+  auto prefix = [&first_prefix, is_subresult]() {
+    if (is_subresult && first_prefix) {
+      first_prefix = false;
+      return "   ^     ";
+    }
+    return "   |     ";
+  };
+
+  if (std::holds_alternative<std::monostate>(region)) {
+    std::cout << prefix() << std::endl;
     return;
   }
 
@@ -40,19 +49,20 @@ void print_code(const std::string &filename, const LintResult::Region &region) {
   };
 
   std::visit(overload{
-                 [](const LintResult::None &) { std::abort(); },
+                 [](const std::monostate &) { std::abort(); },
                  [&](const LintResult::MultiLine &ml) {
                    for (const auto &l : readfile(ml.startline, ml.endline)) {
-                     std::cout << prefix << l << std::endl;
+                     std::cout << prefix() << l << std::endl;
                    }
-                   std::cout << prefix << std::endl;
+                   std::cout << prefix() << std::endl;
                  },
                  [&](const LintResult::OneLineMarked &olm) {
                    std::vector<std::string> line = readfile(olm.line, olm.line);
                    if (line.empty())
                      return;
-                   std::cout << prefix << line[0] << std::endl;
-                   std::cout << prefix << rang::fgB::yellow << rang::style::bold;
+                   std::cout << prefix() << line[0] << std::endl;
+                   std::cout << prefix() << (is_subresult ? rang::fgB::cyan : rang::fgB::yellow)
+                             << rang::style::bold;
                    print_marker(olm.startcol, olm.endcol);
                    std::cout << rang::style::reset << std::endl;
                  },
@@ -62,7 +72,7 @@ void print_code(const std::string &filename, const LintResult::Region &region) {
 
 void file_position(std::ostream &stream, const LintResult::Region &region) {
   std::visit(overload{
-                 [](const LintResult::None &) {},
+                 [](const std::monostate &) {},
                  [&](const LintResult::MultiLine &ml) {
                    stream << ml.startline << '-' << ml.endline << ':';
                  },
@@ -73,17 +83,30 @@ void file_position(std::ostream &stream, const LintResult::Region &region) {
              },
              region);
 }
+
+void print_subresults(const LintResult &lintrule) {
+  for (auto &r : lintrule.sub_results) {
+    std::cout << rang::style::bold << r.filename << ':';
+    file_position(std::cout, r.region);
+    std::cout << rang::style::reset << ' ' << r.message << std::endl;
+    print_code(r.filename, r.region, true);
+  }
+}
+
+void print_one_result(const LintResult &r) {
+  std::cout << rang::style::bold << r.filename << ':';
+  file_position(std::cout, r.region);
+  std::cout << rang::style::reset << ' ' << r.message << rang::fgB::magenta << rang::style::bold
+            << " [" << r.rule->name << '(' << r.rule->id << ")]" << rang::style::reset << std::endl;
+  print_code(r.filename, r.region);
+  print_subresults(r);
+}
 } // namespace
 
 namespace LZN {
 void stdout_print(const std::vector<LintResult> &results) {
   for (auto &r : results) {
-    std::cout << rang::style::bold << r.filename << ':';
-    file_position(std::cout, r.region);
-    std::cout << rang::style::reset << ' ' << r.message << rang::fgB::magenta << rang::style::bold
-              << " [" << r.rule->name << '(' << r.rule->id << ")]" << rang::style::reset
-              << std::endl;
-    print_code(r.filename, r.region);
+    print_one_result(r);
   }
 }
 } // namespace LZN

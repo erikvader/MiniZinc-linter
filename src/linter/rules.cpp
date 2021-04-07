@@ -16,7 +16,7 @@ const T &lazy_value(std::optional<T> &opt, F f) {
 namespace LZN {
 std::ostream &operator<<(std::ostream &os, const LintResult &value) {
   os << "(" << value.rule->name << ")";
-  std::visit(overload{[&](const LintResult::None &) { os << "None"; },
+  std::visit(overload{[&](const std::monostate &) { os << "None"; },
                       [&](const LintResult::OneLineMarked &olm) {
                         os << "OLM{" << olm.line << "," << olm.startcol << "," << olm.endcol << "}";
                       },

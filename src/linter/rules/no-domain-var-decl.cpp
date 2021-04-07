@@ -21,11 +21,10 @@ public:
 private:
   virtual void do_run(LintEnv &env) const override {
     for (const MiniZinc::VarDecl *vd : env.variable_declarations()) {
-      // TODO: what if array that doesn't cover all values?
       if (isNoDomainVar(*vd) && vd->e() == nullptr &&
           env.get_equal_constrained_rhs(vd) == nullptr) {
         auto &loc = vd->loc();
-        env.add_result(
+        env.emplace_result(
             loc.filename().c_str(), this, "no explicit domain on variable declaration",
             LintResult::OneLineMarked{loc.firstLine(), loc.firstColumn(), loc.lastColumn()});
       }
