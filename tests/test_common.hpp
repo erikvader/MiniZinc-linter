@@ -22,22 +22,25 @@ inline constexpr const char *const MODEL_FILENAME = "testmodel";
     }                                                                                              \
   }
 
-// TODO: gc?
 // TODO: statically specify includePaths from CMAKE
-#define LZN_TEST_CASE_INIT(rule_id)                                                                \
+#define LZN_MODEL_INIT                                                                             \
   std::vector<std::string> includePaths = {"../../deps/libminizinc/share/minizinc/std/"};          \
+  std::stringstream errstream;                                                                     \
+  MiniZinc::Env env;
+
+// TODO: gc?
+#define LZN_TEST_CASE_INIT(rule_id)                                                                \
   const LZN::LintRule *rule;                                                                       \
   REQUIRE_NOTHROW(rule = LZN::Registry::get(rule_id));                                             \
-  std::stringstream errstream;                                                                     \
-  MiniZinc::Env env;                                                                               \
-  std::vector<LZN::LintResult> results;
+  std::vector<LZN::LintResult> results;                                                            \
+  LZN_MODEL_INIT
 
 #define LZN_TEST_CASE_END                                                                          \
   UNSCOPED_INFO("MiniZinc::parse printed some error");                                             \
   char buf;                                                                                        \
   REQUIRE(errstream.readsome(&buf, 1) == 0);
 
-#define LZN_MODEL(s)                                                                               \
+#define LZN_ONLY_PARSE(s)                                                                          \
   MiniZinc::Model *model = MiniZinc::parse(env, {}, {}, (s), MODEL_FILENAME, includePaths, false,  \
                                            false, false, false, errstream);                        \
   if (model == nullptr)                                                                            \
@@ -45,7 +48,10 @@ inline constexpr const char *const MODEL_FILENAME = "testmodel";
   assert(model != nullptr);                                                                        \
   std::vector<MiniZinc::TypeError> typeErrors;                                                     \
   MiniZinc::typecheck(env, model, typeErrors, true, false);                                        \
-  LZN::LintEnv lenv(model);                                                                        \
+  LZN::LintEnv lenv(model, env);
+
+#define LZN_MODEL(s)                                                                               \
+  LZN_ONLY_PARSE(s);                                                                               \
   rule->run(lenv);                                                                                 \
   results = lenv.take_results();
 

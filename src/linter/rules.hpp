@@ -40,6 +40,8 @@ public:
   const VDVec &variable_declarations();
 
   const MiniZinc::Expression *get_equal_constrained_rhs(const MiniZinc::VarDecl *);
+  // is every index in the array touched from constraints?
+  bool is_every_index_touched(const MiniZinc::VarDecl *);
 };
 
 class LintRule {
