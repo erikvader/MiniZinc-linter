@@ -9,6 +9,7 @@ namespace LZN {
 using ExprFilterFun = bool (*)(const MiniZinc::Expression *root, const MiniZinc::Expression *child);
 
 bool filter_out_annotations(const MiniZinc::Expression *root, const MiniZinc::Expression *child);
+bool filter_out_vardecls(const MiniZinc::Expression *root, const MiniZinc::Expression *child);
 bool filter_arrayaccess_name(const MiniZinc::Expression *root, const MiniZinc::Expression *child);
 bool filter_comprehension_expr(const MiniZinc::Expression *root, const MiniZinc::Expression *child);
 
@@ -99,11 +100,6 @@ protected:
 
 protected:
   ModelSearcher(const MiniZinc::Model *m, const Search &search);
-  // TODO: implement this
-  ModelSearcher(const MiniZinc::Expression *, const Search &search)
-      : model(nullptr), search(search) {
-    throw std::logic_error("not implemented");
-  };
 
 public:
   ModelSearcher(const ModelSearcher &) = delete;
@@ -147,6 +143,7 @@ public:
     bool next();
     const MiniZinc::Item *cur_item() const noexcept;
     const MiniZinc::Expression *capture(std::size_t n) const;
+    void skip_item();
 
     template <typename T>
     const T *capture_cast(std::size_t n) const {
@@ -199,49 +196,58 @@ public:
 
   SearchBuilder() : numcaptures(0) {}
 
-  SearchBuilder &in_include() {
-    locations.use_ii = true;
+  SearchBuilder &in_include(bool visit = true) {
+    locations.use_ii = visit;
     return *this;
   }
-  SearchBuilder &in_constraint() {
-    locations.use_ci = true;
+  SearchBuilder &in_constraint(bool visit = true) {
+    locations.use_ci = visit;
     return *this;
   }
-  SearchBuilder &in_function_body() {
-    locations.use_fi_body = true;
+  SearchBuilder &in_function_body(bool visit = true) {
+    locations.use_fi_body = visit;
     return *this;
   }
-  SearchBuilder &in_function_params() {
-    locations.use_fi_params = true;
+  SearchBuilder &in_function_params(bool visit = true) {
+    locations.use_fi_params = visit;
     return *this;
   }
-  SearchBuilder &in_function_return() {
-    locations.use_fi_return = true;
+  SearchBuilder &in_function_return(bool visit = true) {
+    locations.use_fi_return = visit;
     return *this;
   }
-  SearchBuilder &in_function() {
-    return in_function_body().in_function_params().in_function_return();
+  SearchBuilder &in_function(bool visit = true) {
+    return in_function_body(visit).in_function_params(visit).in_function_return(visit);
   }
-  SearchBuilder &in_vardecl() {
-    locations.use_vdi = true;
+  SearchBuilder &in_vardecl(bool visit = true) {
+    locations.use_vdi = visit;
     return *this;
   }
-  SearchBuilder &in_assign_rhs() {
-    locations.use_ai_rhs = true;
+  SearchBuilder &in_assign_rhs(bool visit = true) {
+    locations.use_ai_rhs = visit;
     return *this;
   }
-  SearchBuilder &in_assign_decl() {
-    locations.use_ai_decl = true;
+  SearchBuilder &in_assign_decl(bool visit = true) {
+    locations.use_ai_decl = visit;
     return *this;
   }
-  SearchBuilder &in_assign() { return in_assign_rhs().in_assign_decl(); }
-  SearchBuilder &in_solve() {
-    locations.use_si = true;
+  SearchBuilder &in_assign(bool visit = true) { return in_assign_rhs(visit).in_assign_decl(visit); }
+  SearchBuilder &in_solve(bool visit = true) {
+    locations.use_si = visit;
     return *this;
   }
-  SearchBuilder &in_output() {
-    locations.use_oi = true;
+  SearchBuilder &in_output(bool visit = true) {
+    locations.use_oi = visit;
     return *this;
+  }
+  SearchBuilder &in_everywhere() {
+    return in_include()
+        .in_constraint()
+        .in_function()
+        .in_vardecl()
+        .in_assign()
+        .in_solve()
+        .in_output();
   }
 
   SearchBuilder &global_filter(ExprFilterFun f) {

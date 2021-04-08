@@ -18,11 +18,16 @@ class LintEnv {
   MiniZinc::Env &_env;
   std::vector<LintResult> _results;
 
+  // Looks anywhere for constraints on the form: constraint Id = Expr;
   using ECMap = std::unordered_map<const MiniZinc::VarDecl *, const MiniZinc::Expression *>;
   std::optional<ECMap> _equal_constrained;
+
+  // Looks everywhere for all variable and parameter declarations.
   using VDVec = std::vector<const MiniZinc::VarDecl *>;
   std::optional<VDVec> _vardecls;
 
+  // Looks anywhere for constrains on the form: constraint forall([Id[Expr] = Expr | ... ]); and
+  // constraint Id[Expr] = Expr;
   struct AECValue {
     const MiniZinc::ArrayAccess *arrayaccess;
     const MiniZinc::Expression *rhs;
@@ -30,6 +35,9 @@ class LintEnv {
   };
   using AECMap = std::unordered_multimap<const MiniZinc::VarDecl *, AECValue>;
   std::optional<AECMap> _array_equal_constrained;
+
+  using UDFVec = std::vector<const MiniZinc::FunctionI *>;
+  std::optional<UDFVec> _user_defined_funcs;
 
 public:
   LintEnv(const MiniZinc::Model *model, MiniZinc::Env &env) : _model(model), _env(env) {}
@@ -45,8 +53,10 @@ public:
   const MiniZinc::Model *model() const { return _model; }
 
   const ECMap &equal_constrained();
-  const VDVec &variable_declarations();
+  const VDVec &variable_declarations(); // TODO: only user defined??
   const AECMap &array_equal_constrained();
+  const UDFVec &user_defined_functions();
+  // TODO: list of all constraints inside let
 
   const MiniZinc::Expression *get_equal_constrained_rhs(const MiniZinc::VarDecl *);
   // is every index in the array touched from constraints?
@@ -72,6 +82,7 @@ struct LintResult {
   LintRule const *rule;
   std::string message;
 
+  // TODO: handle if endcol comes from a different line
   struct OneLineMarked {
     unsigned int line;
     unsigned int startcol;

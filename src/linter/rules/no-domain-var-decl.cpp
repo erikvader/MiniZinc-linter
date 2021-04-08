@@ -1,6 +1,5 @@
 #include <linter/registry.hpp>
 #include <linter/rules.hpp>
-#include <linter/searcher.hpp>
 
 namespace {
 using namespace LZN;

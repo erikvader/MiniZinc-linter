@@ -63,7 +63,8 @@ void print_code(const std::string &filename, const LintResult::Region &region,
                    std::cout << prefix() << line[0] << std::endl;
                    std::cout << prefix() << (is_subresult ? rang::fgB::cyan : rang::fgB::yellow)
                              << rang::style::bold;
-                   print_marker(olm.startcol, olm.endcol);
+                   print_marker(olm.startcol,
+                                std::min(olm.endcol, static_cast<unsigned int>(line[0].length())));
                    std::cout << rang::style::reset << std::endl;
                  },
              },

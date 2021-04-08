@@ -317,6 +317,14 @@ bool Search::ModelSearcher::next() {
   return next();
 }
 
+void Search::ModelSearcher::skip_item() {
+  if (!is_items_only()) {
+    assert(expr_searcher);
+    expr_searcher->abort();
+    next_item();
+  }
+}
+
 const MiniZinc::Item *Search::ModelSearcher::cur_item() const noexcept {
   if (!item_queue || item_queue == item_queue_end)
     return nullptr;
@@ -333,6 +341,10 @@ const MiniZinc::Expression *Search::ModelSearcher::capture(std::size_t n) const 
 bool filter_out_annotations(const MiniZinc::Expression *root, const MiniZinc::Expression *child) {
   return !std::any_of(root->ann().begin(), root->ann().end(),
                       [child](const MiniZinc::Expression *i) { return i == child; });
+}
+
+bool filter_out_vardecls(const MiniZinc::Expression *root, const MiniZinc::Expression *) {
+  return !root->isa<MiniZinc::VarDecl>();
 }
 
 bool filter_arrayaccess_name(const MiniZinc::Expression *root, const MiniZinc::Expression *child) {

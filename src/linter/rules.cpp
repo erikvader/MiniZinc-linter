@@ -150,6 +150,20 @@ const LintEnv::AECMap &LintEnv::array_equal_constrained() {
   });
 }
 
+const LintEnv::UDFVec &LintEnv::user_defined_functions() {
+  return lazy_value(_user_defined_funcs, [model = _model]() {
+    const auto s = SearchBuilder().in_function().build();
+    auto ms = s.search(model);
+    LintEnv::UDFVec vec;
+    while (ms.next()) {
+      auto fi = ms.cur_item()->cast<MiniZinc::FunctionI>();
+      if (!fi->fromStdLib())
+        vec.push_back(fi);
+    }
+    return vec;
+  });
+}
+
 const MiniZinc::Expression *LintEnv::get_equal_constrained_rhs(const MiniZinc::VarDecl *vd) {
   const auto &map = equal_constrained();
   auto it = map.find(vd);
