@@ -40,7 +40,7 @@ const LintEnv::ECMap &LintEnv::equal_constrained() {
                        // .in_assign_rhs()
                        // .in_function_body()
                        .in_constraint()
-                       .under(MiniZinc::BinOpType::BOT_EQ)
+                       .direct(MiniZinc::BinOpType::BOT_EQ)
                        .capture()
                        .direct(MiniZinc::Expression::E_ID)
                        .build();
