@@ -84,7 +84,7 @@ private:
       }
     }
 
-    for (auto vd : env.variable_declarations()) {
+    for (auto vd : env.user_defined_variable_declarations()) {
       if (vd->e() != nullptr) {
         collect_dependans<MiniZinc::Id>(MiniZinc::Expression::E_ID, g, vd, vd->e());
         collect_dependans<MiniZinc::Call>(MiniZinc::Expression::E_CALL, g, vd, vd->e());

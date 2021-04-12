@@ -15,7 +15,7 @@ private:
   using ExpressionId = MiniZinc::Expression::ExpressionId;
 
   virtual void do_run(LintEnv &env) const override {
-    for (const MiniZinc::VarDecl *vd : env.variable_declarations()) {
+    for (const MiniZinc::VarDecl *vd : env.user_defined_variable_declarations()) {
       const MiniZinc::Expression *rhs = nullptr;
       if ((rhs = vd->e()) == nullptr)
         rhs = env.get_equal_constrained_rhs(vd);

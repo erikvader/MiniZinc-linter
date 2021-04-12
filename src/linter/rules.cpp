@@ -1,6 +1,6 @@
 #include "rules.hpp"
+#include <linter/file_utils.hpp>
 #include <linter/overload.hpp>
-#include <linter/searcher.hpp>
 #include <linter/utils.hpp>
 
 namespace {
@@ -32,8 +32,8 @@ void LintEnv::add_result(LintResult lr) {
 }
 
 const LintEnv::ECMap &LintEnv::equal_constrained() {
-  return lazy_value(_equal_constrained, [model = _model]() {
-    const auto s = SearchBuilder()
+  return lazy_value(_equal_constrained, [this, model = _model]() {
+    const auto s = get_builder()
                        .global_filter(filter_out_annotations)
                        // TODO: look for constraints in let
                        // .in_vardecl()
@@ -64,10 +64,10 @@ const LintEnv::ECMap &LintEnv::equal_constrained() {
   });
 }
 
-const LintEnv::VDVec &LintEnv::variable_declarations() {
+const LintEnv::VDVec &LintEnv::user_defined_variable_declarations() {
   using ExpressionId = MiniZinc::Expression::ExpressionId;
-  return lazy_value(_vardecls, [model = _model]() {
-    const auto s = SearchBuilder()
+  return lazy_value(_vardecls, [this, model = _model]() {
+    const auto s = get_builder()
                        .in_vardecl()
                        .in_assign_rhs()
                        .in_constraint()
@@ -77,20 +77,41 @@ const LintEnv::VDVec &LintEnv::variable_declarations() {
                        .build();
     auto ms = s.search(model);
 
+    MiniZinc::VarDecl *solve_var = nullptr;
+    if (auto si = solve_item(); si != nullptr && si->e() != nullptr) {
+      auto id = si->e()->dynamicCast<MiniZinc::Id>();
+      solve_var = id->decl();
+    }
+
     LintEnv::VDVec vec;
     while (ms.next()) {
-      vec.push_back(ms.capture(0)->cast<MiniZinc::VarDecl>());
+      // ignore enum functions from stdlib
+      if (auto fi = ms.cur_item()->dynamicCast<MiniZinc::FunctionI>();
+          fi != nullptr && (fi->fromStdLib() || fi->loc().isIntroduced())) {
+        ms.skip_item();
+        continue;
+      }
+
+      auto vd = ms.capture(0)->cast<MiniZinc::VarDecl>();
+
+      // ignore enum definitions from stdlib, but keep _objective
+      if ((solve_var == nullptr || solve_var != vd) &&
+          !is_user_defined(_includePath, vd->loc().filename())) {
+        continue;
+      }
+
+      vec.push_back(vd);
     }
     return vec;
   });
 }
 
 const LintEnv::AECMap &LintEnv::array_equal_constrained() {
-  return lazy_value(_array_equal_constrained, [model = _model]() {
+  return lazy_value(_array_equal_constrained, [this, model = _model]() {
     LintEnv::AECMap map;
 
     {
-      const auto s = LZN::SearchBuilder()
+      const auto s = get_builder()
                          .in_constraint()
                          .direct(MiniZinc::Expression::E_CALL)
                          .capture()
@@ -109,7 +130,7 @@ const LintEnv::AECMap &LintEnv::array_equal_constrained() {
 
       while (forallsearcher.next()) {
         const auto forall = forallsearcher.capture_cast<MiniZinc::Call>(0);
-        if (forall->id().size() != 6 && std::strncmp(forall->id().c_str(), "forall", 6) != 0)
+        if (forall->id() != MiniZinc::constants().ids.forall)
           continue;
 
         const auto comp = forallsearcher.capture_cast<MiniZinc::Comprehension>(1);
@@ -124,7 +145,7 @@ const LintEnv::AECMap &LintEnv::array_equal_constrained() {
     }
 
     {
-      const auto s = LZN::SearchBuilder()
+      const auto s = get_builder()
                          .in_constraint()
                          .direct(MiniZinc::BinOpType::BOT_EQ)
                          .capture()
@@ -151,16 +172,27 @@ const LintEnv::AECMap &LintEnv::array_equal_constrained() {
 }
 
 const LintEnv::UDFVec &LintEnv::user_defined_functions() {
-  return lazy_value(_user_defined_funcs, [model = _model]() {
-    const auto s = SearchBuilder().in_function().build();
+  return lazy_value(_user_defined_funcs, [this, model = _model]() {
+    const auto s = get_builder().in_function().build();
     auto ms = s.search(model);
     LintEnv::UDFVec vec;
     while (ms.next()) {
       auto fi = ms.cur_item()->cast<MiniZinc::FunctionI>();
-      if (!fi->fromStdLib())
+      if (!fi->fromStdLib() && !fi->loc().isIntroduced())
         vec.push_back(fi);
     }
     return vec;
+  });
+}
+
+const MiniZinc::SolveI *LintEnv::solve_item() {
+  return lazy_value(_solve_item, [this, model = _model]() -> const MiniZinc::SolveI * {
+    const auto s = get_builder().in_solve().build();
+    auto ms = s.search(model);
+    while (ms.next()) {
+      return ms.cur_item()->cast<MiniZinc::SolveI>();
+    }
+    return nullptr;
   });
 }
 
@@ -210,6 +242,10 @@ bool LintEnv::is_every_index_touched(const MiniZinc::VarDecl *arraydecl) {
       return true;
   }
   return false;
+}
+
+SearchBuilder LintEnv::get_builder() const {
+  return SearchBuilder().only_user_defined(_includePath).recursive();
 }
 
 } // namespace LZN

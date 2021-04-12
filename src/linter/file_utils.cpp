@@ -1,4 +1,5 @@
 #include "file_utils.hpp"
+#include <algorithm>
 #include <errno.h>
 #include <fstream>
 #include <system_error>
@@ -25,5 +26,13 @@ std::vector<std::string> lines_of_file(const std::string &filename, unsigned int
     throw std::system_error(errno, std::generic_category());
   }
   return lines;
+}
+
+bool is_user_defined(const std::vector<std::string> &includePath, MiniZinc::ASTString path) {
+  if (path.size() == 0)
+    return false;
+
+  return !std::any_of(includePath.begin(), includePath.end(),
+                      [path](const std::string &incpath) { return path.beginsWith(incpath); });
 }
 } // namespace LZN

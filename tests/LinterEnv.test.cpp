@@ -10,7 +10,7 @@ std::optional<const MiniZinc::VarDecl *> find_first_array(const T &vec) {
 }
 
 #define RUN_EVERY_INDEX(expect)                                                                    \
-  auto vardecls = lenv.variable_declarations();                                                    \
+  auto vardecls = lenv.user_defined_variable_declarations();                                       \
   auto arr = find_first_array(vardecls);                                                           \
   REQUIRE(arr);                                                                                    \
   CHECK(lenv.is_every_index_touched(arr.value()) == expect);

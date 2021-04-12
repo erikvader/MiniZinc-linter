@@ -1,5 +1,6 @@
 #include "searcher.hpp"
 #include <algorithm>
+#include <linter/file_utils.hpp>
 #include <minizinc/astiterator.hh>
 #include <minizinc/model.hh>
 
@@ -177,13 +178,14 @@ void ExprSearcher::abort() {
 }
 
 bool ModelSearcher::next_starting_point() {
-  assert(item_queue != item_queue_end);
   using I = MiniZinc::Item;
 
-  if (!item_queue)
+  if (iters_pushed) // iters_top() not valid
     return false;
 
-  MiniZinc::Item *cur = **item_queue;
+  assert(!iters.empty());
+
+  const MiniZinc::Item *cur = iters_top();
   MiniZinc::Expression *next = nullptr;
 
   switch (cur->iid()) {
@@ -262,15 +264,17 @@ bool ModelSearcher::next_starting_point() {
 }
 
 bool ModelSearcher::next_item() {
-  assert(item_queue != item_queue_end);
-  if (!item_queue) {
-    item_queue = model->begin();
-  } else {
-    ++(*item_queue);
-    item_child = 0;
-  }
-  for (; item_queue != item_queue_end; ++(*item_queue), item_child = 0) {
-    MiniZinc::Item *cur = **item_queue;
+  advance_iters();
+  item_child = 0;
+  for (; !iters.empty(); advance_iters(), item_child = 0) {
+    const MiniZinc::Item *cur = iters_top();
+
+    const MiniZinc::IncludeI *inc;
+    if (search.is_recursive() && (inc = cur->dynamicCast<MiniZinc::IncludeI>()) != nullptr &&
+        search.is_user_defined_include(inc)) {
+      iters_push(inc->m());
+    }
+
     if (search.locations.should_visit(cur))
       return true;
   }
@@ -281,19 +285,60 @@ bool ModelSearcher::is_items_only() const noexcept {
   return search.nodes.empty();
 }
 
+void ModelSearcher::advance_iters() {
+  if (iters.empty())
+    return;
+  if (iters_pushed) {
+    iters_pushed = false;
+    return;
+  }
+  ++(iters.top().first);
+  if (iters.top().first == iters.top().second) {
+    iters.pop();
+    advance_iters();
+  }
+}
+
+const MiniZinc::Item *ModelSearcher::iters_top() const {
+  assert(!iters.empty() && !iters_pushed);
+  assert(iters.top().first != iters.top().second);
+  return *iters.top().first;
+}
+
+void ModelSearcher::iters_push(const MiniZinc::Model *m) {
+  if (m->begin() == m->end())
+    return;
+  iters.emplace(m->begin(), m->end());
+  iters_pushed = true;
+}
+
 ModelSearcher::ModelSearcher(const MiniZinc::Model *m, const Search &search)
-    : model(m), search(search), item_queue_end(m->end()), item_child(0) {
+    : model(m), search(search), iters_pushed(false), item_child(0) {
   if (!search.nodes.empty()) {
     expr_searcher.emplace(search.nodes, &search.global_filters);
   }
+  iters_push(m);
 }
 
 } // namespace LZN::Impl
 
 namespace LZN {
 
+bool Search::is_user_defined_include(const MiniZinc::IncludeI *incl) const noexcept {
+  assert(incl != nullptr);
+  if (includePath == nullptr)
+    return true;
+
+  auto model_path = incl->m()->filepath();
+  return is_user_defined(*includePath, model_path);
+}
+
+bool Search::is_recursive() const noexcept {
+  return recursive;
+}
+
 bool Search::ModelSearcher::next() {
-  if (item_queue == item_queue_end)
+  if (iters.empty())
     return false;
 
   if (is_items_only()) {
@@ -326,9 +371,9 @@ void Search::ModelSearcher::skip_item() {
 }
 
 const MiniZinc::Item *Search::ModelSearcher::cur_item() const noexcept {
-  if (!item_queue || item_queue == item_queue_end)
+  if (iters_pushed || iters.empty())
     return nullptr;
-  return **item_queue;
+  return iters_top();
 }
 
 const MiniZinc::Expression *Search::ModelSearcher::capture(std::size_t n) const {
@@ -339,6 +384,7 @@ const MiniZinc::Expression *Search::ModelSearcher::capture(std::size_t n) const 
 }
 
 bool filter_out_annotations(const MiniZinc::Expression *root, const MiniZinc::Expression *child) {
+  // TODO: use Type::isAnn instead??
   return !std::any_of(root->ann().begin(), root->ann().end(),
                       [child](const MiniZinc::Expression *i) { return i == child; });
 }

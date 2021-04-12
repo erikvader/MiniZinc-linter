@@ -19,7 +19,7 @@ public:
 
 private:
   virtual void do_run(LintEnv &env) const override {
-    for (const MiniZinc::VarDecl *vd : env.variable_declarations()) {
+    for (const MiniZinc::VarDecl *vd : env.user_defined_variable_declarations()) {
       if (isNoDomainVar(*vd) && vd->e() == nullptr &&
           env.get_equal_constrained_rhs(vd) == nullptr) {
         auto &loc = vd->loc();

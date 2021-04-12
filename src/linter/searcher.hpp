@@ -2,6 +2,7 @@
 #include <linter/rustiter.hpp>
 #include <minizinc/ast.hh>
 #include <minizinc/model.hh>
+#include <stack>
 #include <variant>
 
 namespace LZN {
@@ -94,11 +95,10 @@ protected:
   const Search &search;
 
   std::optional<ExprSearcher> expr_searcher;
-  std::optional<MiniZinc::Model::const_iterator> item_queue;
-  const MiniZinc::Model::const_iterator item_queue_end;
+  bool iters_pushed;
+  std::stack<std::pair<MiniZinc::Model::const_iterator, MiniZinc::Model::const_iterator>> iters;
   std::size_t item_child;
 
-protected:
   ModelSearcher(const MiniZinc::Model *m, const Search &search);
 
 public:
@@ -111,6 +111,9 @@ protected:
   bool next_starting_point();
   bool next_item();
   bool is_items_only() const noexcept;
+  void advance_iters();
+  const MiniZinc::Item *iters_top() const;
+  void iters_push(const MiniZinc::Model *);
 };
 
 } // namespace LZN::Impl
@@ -122,13 +125,14 @@ class Search {
   Impl::SearchLocs locations;
   std::size_t numcaptures;
   std::vector<ExprFilterFun> global_filters;
+  const std::vector<std::string> *includePath;
+  bool recursive;
 
   Search(std::vector<Impl::SearchNode> nodes, Impl::SearchLocs locations, std::size_t numcaptures,
-         std::vector<ExprFilterFun> global_filters)
+         std::vector<ExprFilterFun> global_filters, const std::vector<std::string> *includePath,
+         bool recursive)
       : nodes(std::move(nodes)), locations(std::move(locations)), numcaptures(numcaptures),
-        global_filters(std::move(global_filters)) {}
-
-  bool should_visit(const MiniZinc::Expression *p, const MiniZinc::Expression *child) const;
+        global_filters(std::move(global_filters)), includePath(includePath), recursive(recursive) {}
 
   friend class SearchBuilder;
   friend class Impl::ModelSearcher;
@@ -179,13 +183,18 @@ public:
     return ExpressionSearcher(nodes, &global_filters, e);
   }
   ExpressionSearcher search(const MiniZinc::Expression *) && = delete;
+
+  bool is_user_defined_include(const MiniZinc::IncludeI *) const noexcept;
+  bool is_recursive() const noexcept;
 };
 
 class SearchBuilder {
   std::vector<Impl::SearchNode> nodes;
   Impl::SearchLocs locations;
-  std::size_t numcaptures;
+  std::size_t numcaptures = 0;
   std::vector<ExprFilterFun> global_filters;
+  const std::vector<std::string> *includePath = nullptr;
+  bool _recursive = false;
 
   using Attach = Impl::SearchNode::Attachement;
 
@@ -194,7 +203,17 @@ public:
   using BinOpType = MiniZinc::BinOpType;
   using UnOpType = MiniZinc::UnOpType;
 
-  SearchBuilder() : numcaptures(0) {}
+  SearchBuilder() = default;
+
+  SearchBuilder &only_user_defined(const std::vector<std::string> &standard_lib_include_path) {
+    includePath = &standard_lib_include_path;
+    return *this;
+  }
+
+  SearchBuilder &recursive(bool r = true) {
+    _recursive = r;
+    return *this;
+  }
 
   SearchBuilder &in_include(bool visit = true) {
     locations.use_ii = visit;
@@ -297,7 +316,8 @@ public:
   }
 
   Search build() {
-    return Search(std::move(nodes), std::move(locations), numcaptures, std::move(global_filters));
+    return Search(std::move(nodes), std::move(locations), numcaptures, std::move(global_filters),
+                  includePath, _recursive);
   }
 };
 } // namespace LZN

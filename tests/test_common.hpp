@@ -48,7 +48,7 @@ inline constexpr const char *const MODEL_FILENAME = "testmodel";
   assert(model != nullptr);                                                                        \
   std::vector<MiniZinc::TypeError> typeErrors;                                                     \
   MiniZinc::typecheck(env, model, typeErrors, true, false);                                        \
-  LZN::LintEnv lenv(model, env);
+  LZN::LintEnv lenv(model, env, includePaths);
 
 #define LZN_MODEL(s)                                                                               \
   LZN_ONLY_PARSE(s);                                                                               \

@@ -1,5 +1,6 @@
 #pragma once
 
+#include <linter/searcher.hpp>
 #include <minizinc/model.hh>
 #include <string>
 #include <tuple>
@@ -17,6 +18,7 @@ class LintEnv {
   const MiniZinc::Model *_model;
   MiniZinc::Env &_env;
   std::vector<LintResult> _results;
+  const std::vector<std::string> &_includePath;
 
   // Looks anywhere for constraints on the form: constraint Id = Expr;
   using ECMap = std::unordered_map<const MiniZinc::VarDecl *, const MiniZinc::Expression *>;
@@ -36,11 +38,17 @@ class LintEnv {
   using AECMap = std::unordered_multimap<const MiniZinc::VarDecl *, AECValue>;
   std::optional<AECMap> _array_equal_constrained;
 
+  // functions not from stdlib nor auto generated (enums)
   using UDFVec = std::vector<const MiniZinc::FunctionI *>;
   std::optional<UDFVec> _user_defined_funcs;
 
+  // the one and only solve item
+  std::optional<const MiniZinc::SolveI *> _solve_item;
+
 public:
-  LintEnv(const MiniZinc::Model *model, MiniZinc::Env &env) : _model(model), _env(env) {}
+  LintEnv(const MiniZinc::Model *model, MiniZinc::Env &env,
+          const std::vector<std::string> &includePath)
+      : _model(model), _env(env), _includePath(includePath) {}
 
   template <typename... Args>
   void emplace_result(Args &&...args) {
@@ -53,14 +61,18 @@ public:
   const MiniZinc::Model *model() const { return _model; }
 
   const ECMap &equal_constrained();
-  const VDVec &variable_declarations(); // TODO: only user defined??
+  const VDVec &user_defined_variable_declarations();
   const AECMap &array_equal_constrained();
   const UDFVec &user_defined_functions();
+  const MiniZinc::SolveI *solve_item();
   // TODO: list of all constraints inside let
 
   const MiniZinc::Expression *get_equal_constrained_rhs(const MiniZinc::VarDecl *);
   // is every index in the array touched from constraints?
   bool is_every_index_touched(const MiniZinc::VarDecl *);
+
+private:
+  SearchBuilder get_builder() const;
 };
 
 class LintRule {
