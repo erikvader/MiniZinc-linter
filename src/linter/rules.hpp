@@ -71,7 +71,7 @@ public:
   // is every index in the array touched from constraints?
   bool is_every_index_touched(const MiniZinc::VarDecl *);
 
-private:
+  // return a builder that only searches for mostly user defined things
   SearchBuilder get_builder() const;
 };
 

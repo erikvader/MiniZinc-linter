@@ -25,8 +25,8 @@ bool path_included_from(const std::vector<std::string> &includePath, MiniZinc::A
   if (path.size() == 0)
     return false;
 
-  return !std::any_of(includePath.begin(), includePath.end(),
-                      [path](const std::string &incpath) { return path.beginsWith(incpath); });
+  return std::any_of(includePath.begin(), includePath.end(),
+                     [path](const std::string &incpath) { return path.beginsWith(incpath); });
 }
 
 void CachedFileReader::read_to_cache(const CachedFileReader::FilePath &filename) {

@@ -186,6 +186,8 @@ public:
 
   bool is_user_defined_include(const MiniZinc::IncludeI *) const noexcept;
   bool is_recursive() const noexcept;
+  bool is_user_defined_only() const noexcept { return includePath != nullptr; }
+  const std::vector<std::string> *include_path() const noexcept { return includePath; };
 };
 
 class SearchBuilder {

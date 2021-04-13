@@ -102,31 +102,19 @@ const LintEnv::VDVec &LintEnv::user_defined_variable_declarations() {
                        .build();
     auto ms = s.search(model);
 
-    MiniZinc::VarDecl *solve_var = nullptr;
-    if (auto si = solve_item(); si != nullptr && si->e() != nullptr) {
-      auto id = si->e()->dynamicCast<MiniZinc::Id>();
-      solve_var = id->decl();
-    }
-
     LintEnv::VDVec vec;
     while (ms.next()) {
-      // ignore enum functions from stdlib
-      if (auto fi = ms.cur_item()->dynamicCast<MiniZinc::FunctionI>();
-          fi != nullptr && (fi->fromStdLib() || fi->loc().isIntroduced())) {
-        ms.skip_item();
-        continue;
-      }
-
       auto vd = ms.capture(0)->cast<MiniZinc::VarDecl>();
-
-      // ignore enum definitions from stdlib, but keep _objective
-      if ((solve_var == nullptr || solve_var != vd) &&
-          !path_included_from(_includePath, vd->loc().filename())) {
-        continue;
-      }
-
       vec.push_back(vd);
     }
+
+    // add _objective
+    if (auto si = solve_item(); si != nullptr && si->e() != nullptr) {
+      auto id = si->e()->dynamicCast<MiniZinc::Id>();
+      if (id->decl() != nullptr && std::find(vec.begin(), vec.end(), id->decl()) == vec.end())
+        vec.push_back(id->decl());
+    }
+
     return vec;
   });
 }
@@ -203,8 +191,7 @@ const LintEnv::UDFVec &LintEnv::user_defined_functions() {
     LintEnv::UDFVec vec;
     while (ms.next()) {
       auto fi = ms.cur_item()->cast<MiniZinc::FunctionI>();
-      if (!fi->fromStdLib() && !fi->loc().isIntroduced())
-        vec.push_back(fi);
+      vec.push_back(fi);
     }
     return vec;
   });

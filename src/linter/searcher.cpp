@@ -269,6 +269,22 @@ bool ModelSearcher::next_item() {
   for (; !iters.empty(); advance_iters(), item_child = 0) {
     const MiniZinc::Item *cur = iters_top();
 
+    if (search.is_user_defined_only()) {
+      // ignore functions from stdlib and introduced functions (enum tostring)
+      if (auto fi = cur->dynamicCast<MiniZinc::FunctionI>();
+          fi != nullptr && (fi->fromStdLib() || fi->loc().isIntroduced())) {
+        continue;
+      }
+      // ignore enum definitions from stdlib
+      auto vd = cur->dynamicCast<MiniZinc::VarDeclI>();
+      if (vd != nullptr) {
+        auto filename = vd->e()->loc().filename();
+        if (filename.size() == 0 || path_included_from(*search.include_path(), filename)) {
+          continue;
+        }
+      }
+    }
+
     const MiniZinc::IncludeI *inc;
     if (search.is_recursive() && (inc = cur->dynamicCast<MiniZinc::IncludeI>()) != nullptr &&
         search.is_user_defined_include(inc)) {
@@ -330,7 +346,7 @@ bool Search::is_user_defined_include(const MiniZinc::IncludeI *incl) const noexc
     return true;
 
   auto model_path = incl->m()->filepath();
-  return path_included_from(*includePath, model_path);
+  return model_path.size() > 0 && !path_included_from(*includePath, model_path);
 }
 
 bool Search::is_recursive() const noexcept {
