@@ -96,7 +96,7 @@ const LintEnv::VDVec &LintEnv::user_defined_variable_declarations() {
 
       // ignore enum definitions from stdlib, but keep _objective
       if ((solve_var == nullptr || solve_var != vd) &&
-          !is_user_defined(_includePath, vd->loc().filename())) {
+          !path_included_from(_includePath, vd->loc().filename())) {
         continue;
       }
 

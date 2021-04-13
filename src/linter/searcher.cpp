@@ -330,7 +330,7 @@ bool Search::is_user_defined_include(const MiniZinc::IncludeI *incl) const noexc
     return true;
 
   auto model_path = incl->m()->filepath();
-  return is_user_defined(*includePath, model_path);
+  return path_included_from(*includePath, model_path);
 }
 
 bool Search::is_recursive() const noexcept {

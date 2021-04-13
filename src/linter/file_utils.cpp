@@ -28,7 +28,7 @@ std::vector<std::string> lines_of_file(const std::string &filename, unsigned int
   return lines;
 }
 
-bool is_user_defined(const std::vector<std::string> &includePath, MiniZinc::ASTString path) {
+bool path_included_from(const std::vector<std::string> &includePath, MiniZinc::ASTString path) {
   if (path.size() == 0)
     return false;
 
