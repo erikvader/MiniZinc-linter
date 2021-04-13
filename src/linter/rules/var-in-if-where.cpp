@@ -17,7 +17,7 @@ private:
 
   void find_where(LintEnv &env) const {
     const auto s =
-        SearchBuilder().in_everywhere().under(MiniZinc::Expression::E_COMP).capture().build();
+        env.get_builder().in_everywhere().under(MiniZinc::Expression::E_COMP).capture().build();
     auto ms = s.search(env.model());
 
     while (ms.next()) {
@@ -40,7 +40,7 @@ private:
 
   void find_if(LintEnv &env) const {
     const auto s =
-        SearchBuilder().in_everywhere().under(MiniZinc::Expression::E_ITE).capture().build();
+        env.get_builder().in_everywhere().under(MiniZinc::Expression::E_ITE).capture().build();
     auto ms = s.search(env.model());
 
     while (ms.next()) {

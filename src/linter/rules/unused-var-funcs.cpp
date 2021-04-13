@@ -55,7 +55,7 @@ private:
   template <typename T>
   void find_uses(LintEnv &env, MiniZinc::Expression::ExpressionId search_for,
                  std::vector<Thing> &uses) const {
-    static const auto s = SearchBuilder()
+    static const auto s = env.get_builder()
                               .global_filter(filter_out_vardecls)
                               .in_solve()
                               .in_output()
@@ -76,8 +76,8 @@ private:
     Graph g;
     for (auto fi : env.user_defined_functions()) {
       if (fi->e() != nullptr) {
-        collect_dependans<MiniZinc::Id>(MiniZinc::Expression::E_ID, g, fi, fi->e());
-        collect_dependans<MiniZinc::Call>(MiniZinc::Expression::E_CALL, g, fi, fi->e());
+        collect_dependans<MiniZinc::Id>(MiniZinc::Expression::E_ID, g, fi, fi->e(), env);
+        collect_dependans<MiniZinc::Call>(MiniZinc::Expression::E_CALL, g, fi, fi->e(), env);
       }
       if (g.count(fi) == 0) {
         g.emplace(fi, std::monostate());
@@ -86,8 +86,8 @@ private:
 
     for (auto vd : env.user_defined_variable_declarations()) {
       if (vd->e() != nullptr) {
-        collect_dependans<MiniZinc::Id>(MiniZinc::Expression::E_ID, g, vd, vd->e());
-        collect_dependans<MiniZinc::Call>(MiniZinc::Expression::E_CALL, g, vd, vd->e());
+        collect_dependans<MiniZinc::Id>(MiniZinc::Expression::E_ID, g, vd, vd->e(), env);
+        collect_dependans<MiniZinc::Call>(MiniZinc::Expression::E_CALL, g, vd, vd->e(), env);
       }
       if (g.count(vd) == 0) {
         g.emplace(vd, std::monostate());
@@ -99,10 +99,10 @@ private:
 
   template <typename T>
   void collect_dependans(MiniZinc::Expression::ExpressionId search_for, Graph &g, Thing t,
-                         const MiniZinc::Expression *e) const {
+                         const MiniZinc::Expression *e, const LintEnv &env) const {
     {
       static const auto var_searcher =
-          SearchBuilder().global_filter(filter_out_vardecls).under(search_for).capture().build();
+          env.get_builder().global_filter(filter_out_vardecls).under(search_for).capture().build();
       auto vs = var_searcher.search(e);
       while (vs.next()) {
         auto id = vs.capture_cast<T>(0);
