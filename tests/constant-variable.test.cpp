@@ -70,5 +70,10 @@ TEST_CASE("variable assigned to par", "[rule]") {
     LZN_EXPECTED();
   }
 
+  SECTION("inside let") {
+    LZN_MODEL("var int: x = let {var int: y; constraint y = 3;} in y;");
+    LZN_EXPECTED(LZN_ONELINE(1, 19, 28));
+  }
+
   LZN_TEST_CASE_END
 }

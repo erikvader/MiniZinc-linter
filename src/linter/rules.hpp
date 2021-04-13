@@ -45,6 +45,10 @@ class LintEnv {
   // the one and only solve item
   std::optional<const MiniZinc::SolveI *> _solve_item;
 
+  // constraints inside let
+  using ExprVec = std::vector<const MiniZinc::Expression *>;
+  std::optional<ExprVec> _constraints;
+
 public:
   LintEnv(const MiniZinc::Model *model, MiniZinc::Env &env,
           const std::vector<std::string> &includePath)
@@ -65,7 +69,7 @@ public:
   const AECMap &array_equal_constrained();
   const UDFVec &user_defined_functions();
   const MiniZinc::SolveI *solve_item();
-  // TODO: list of all constraints inside let
+  const ExprVec &constraints();
 
   const MiniZinc::Expression *get_equal_constrained_rhs(const MiniZinc::VarDecl *);
   // is every index in the array touched from constraints?
