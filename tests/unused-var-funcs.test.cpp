@@ -8,6 +8,12 @@ TEST_CASE("unused variables and functions", "[rule]") {
     LZN_EXPECTED(LZN_ONELINE(1, 1, 10));
   }
 
+  SECTION("one unused and outputted") {
+    LZN_MODEL("var int: x;\n"
+              "output [show(x)];");
+    LZN_EXPECTED(LZN_ONELINE(1, 1, 10));
+  }
+
   SECTION("one used") {
     LZN_MODEL("var int: x;"
               "constraint x = 2;");
@@ -34,7 +40,7 @@ TEST_CASE("unused variables and functions", "[rule]") {
   SECTION("variable in unused function but used itself") {
     LZN_MODEL("int: x = 2;\n"
               "function int: f() = x;\n"
-              "output [show(x)];");
+              "solve maximize x;");
     LZN_EXPECTED(LZN_ONELINE(2, 1, 21));
   }
 
@@ -61,7 +67,7 @@ TEST_CASE("unused variables and functions", "[rule]") {
   SECTION("used function using function") {
     LZN_MODEL("function int: f() = 2;\n"
               "function int: g() = f()+1;\n"
-              "output [show(g())];");
+              "solve maximize g();");
     LZN_EXPECTED();
   }
 
@@ -76,14 +82,14 @@ TEST_CASE("unused variables and functions", "[rule]") {
     LZN_MODEL("function int: f() = 2;\n"
               "function int: g() = f()+1;\n"
               "int: x = g();\n"
-              "output [show(x)];");
+              "solve maximize x;");
     LZN_EXPECTED();
   }
 
   SECTION("two used functions using each other") {
     LZN_MODEL("function int: f() = g()+1;\n"
               "function int: g() = f()+1;\n"
-              "output [show(g())];");
+              "solve maximize g();");
     LZN_EXPECTED();
   }
 
@@ -100,7 +106,7 @@ TEST_CASE("unused variables and functions", "[rule]") {
 
   SECTION("using function using itself") {
     LZN_MODEL("function int: f() = f()+1;\n"
-              "output [show(f())];");
+              "solve maximize f();");
     LZN_EXPECTED();
   }
 
@@ -116,7 +122,7 @@ TEST_CASE("unused variables and functions", "[rule]") {
 
   SECTION("used variable in used let") {
     LZN_MODEL("int: x = let {int: y = 2} in y;\n"
-              "output [show(x)];");
+              "solve maximize x;");
     LZN_EXPECTED();
   }
 

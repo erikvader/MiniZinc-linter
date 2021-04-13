@@ -58,7 +58,6 @@ private:
     static const auto s = env.get_builder()
                               .global_filter(filter_out_vardecls)
                               .in_solve()
-                              .in_output()
                               .in_constraint()
                               .under(search_for)
                               .capture()
