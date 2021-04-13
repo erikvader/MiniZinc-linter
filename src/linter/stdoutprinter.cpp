@@ -19,7 +19,7 @@ void print_marker(unsigned int startcol, unsigned int endcol) {
 
 // TODO: remove indentation from the lines printed directly from the file
 void print_code(const std::string &filename, const LintResult::Region &region,
-                bool is_subresult = false) {
+                CachedFileReader &reader, bool is_subresult = false) {
 
   bool first_prefix = true;
   auto prefix = [&first_prefix, is_subresult]() {
@@ -35,36 +35,42 @@ void print_code(const std::string &filename, const LintResult::Region &region,
     return;
   }
 
-  // TODO: cache somehow so the same file isn't read multiple times
-  auto readfile = [&filename](unsigned int startline,
-                              unsigned int endline) -> std::vector<std::string> {
-    std::vector<std::string> lines;
-    try {
-      lines = lines_of_file(filename, startline, endline);
-    } catch (std::system_error &err) {
-      std::cerr << rang::fgB::red << rang::style::bold << "Couldn't read file because '"
-                << err.what() << "'" << rang::style::reset << std::endl;
-    }
-    return lines;
+  auto output_error = [](auto &err) {
+    std::cerr << rang::fgB::red << rang::style::bold << "Couldn't read file because '" << err.what()
+              << "'" << rang::style::reset << std::endl;
   };
 
   std::visit(overload{
                  [](const std::monostate &) { std::abort(); },
                  [&](const LintResult::MultiLine &ml) {
-                   for (const auto &l : readfile(ml.startline, ml.endline)) {
-                     std::cout << prefix() << l << std::endl;
+                   CachedFileReader::FileIter iter;
+                   try {
+                     iter = reader.read(filename, ml.startline, ml.endline);
+                   } catch (std::system_error &err) {
+                     output_error(err);
+                     return;
+                   }
+                   for (; iter.first != iter.second; ++iter.first) {
+                     std::cout << prefix() << *iter.first << std::endl;
                    }
                    std::cout << prefix() << std::endl;
                  },
                  [&](const LintResult::OneLineMarked &olm) {
-                   std::vector<std::string> line = readfile(olm.line, olm.line);
-                   if (line.empty())
+                   CachedFileReader::FileIter iter;
+                   try {
+                     iter = reader.read(filename, olm.line, olm.line);
+                   } catch (std::system_error &err) {
+                     output_error(err);
                      return;
-                   std::cout << prefix() << line[0] << std::endl;
+                   }
+                   if (iter.first == iter.second)
+                     return;
+                   const auto &line = *iter.first;
+                   std::cout << prefix() << line << std::endl;
                    std::cout << prefix() << (is_subresult ? rang::fgB::cyan : rang::fgB::yellow)
                              << rang::style::bold;
                    print_marker(olm.startcol,
-                                std::min(olm.endcol, static_cast<unsigned int>(line[0].length())));
+                                std::min(olm.endcol, static_cast<unsigned int>(line.length())));
                    std::cout << rang::style::reset << std::endl;
                  },
              },
@@ -85,29 +91,30 @@ void file_position(std::ostream &stream, const LintResult::Region &region) {
              region);
 }
 
-void print_subresults(const LintResult &lintrule) {
+void print_subresults(const LintResult &lintrule, CachedFileReader &reader) {
   for (auto &r : lintrule.sub_results) {
     std::cout << rang::style::bold << r.filename << ':';
     file_position(std::cout, r.region);
     std::cout << rang::style::reset << ' ' << r.message << std::endl;
-    print_code(r.filename, r.region, true);
+    print_code(r.filename, r.region, reader, true);
   }
 }
 
-void print_one_result(const LintResult &r) {
+void print_one_result(const LintResult &r, CachedFileReader &reader) {
   std::cout << rang::style::bold << r.filename << ':';
   file_position(std::cout, r.region);
   std::cout << rang::style::reset << ' ' << r.message << rang::fgB::magenta << rang::style::bold
             << " [" << r.rule->name << '(' << r.rule->id << ")]" << rang::style::reset << std::endl;
-  print_code(r.filename, r.region);
-  print_subresults(r);
+  print_code(r.filename, r.region, reader);
+  print_subresults(r, reader);
 }
 } // namespace
 
 namespace LZN {
 void stdout_print(const std::vector<LintResult> &results) {
+  CachedFileReader reader;
   for (auto &r : results) {
-    print_one_result(r);
+    print_one_result(r, reader);
   }
 }
 } // namespace LZN

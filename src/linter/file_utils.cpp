@@ -5,22 +5,15 @@
 #include <system_error>
 
 namespace LZN {
-std::vector<std::string> lines_of_file(const std::string &filename, unsigned int start,
-                                       unsigned int end) {
+std::vector<std::string> lines_of_file(const std::string &filename) {
   std::ifstream f(filename);
   if (!f.is_open()) {
     throw std::system_error(errno, std::generic_category(), filename);
   }
   std::vector<std::string> lines;
   std::string line;
-  unsigned int cur_line = 1;
   while (std::getline(f, line)) {
-    if (cur_line >= start && cur_line <= end) {
-      lines.push_back(std::move(line));
-    }
-    cur_line++;
-    if (cur_line > end)
-      break;
+    lines.push_back(std::move(line));
   }
   if (f.bad()) {
     throw std::system_error(errno, std::generic_category());
@@ -34,5 +27,22 @@ bool path_included_from(const std::vector<std::string> &includePath, MiniZinc::A
 
   return !std::any_of(includePath.begin(), includePath.end(),
                       [path](const std::string &incpath) { return path.beginsWith(incpath); });
+}
+
+void CachedFileReader::read_to_cache(const CachedFileReader::FilePath &filename) {
+  if (cache.find(filename) == cache.end()) {
+    cache.emplace(filename, lines_of_file(filename));
+  }
+}
+
+CachedFileReader::FileIter CachedFileReader::read(const CachedFileReader::FilePath &filename,
+                                                  unsigned int startline, unsigned int endline) {
+  assert(endline >= startline);
+  read_to_cache(filename);
+  const auto &contents = cache.at(filename);
+  auto beg =
+      startline > contents.size() ? contents.end() : std::next(contents.begin(), startline - 1);
+  auto end = endline > contents.size() ? contents.end() : std::next(contents.begin(), endline);
+  return std::make_pair(beg, end);
 }
 } // namespace LZN
