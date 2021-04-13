@@ -121,13 +121,13 @@ private:
         auto &loc = fi->loc();
         env.emplace_result(
             loc.filename().c_str(), this, "unused function",
-            LintResult::OneLineMarked{loc.firstLine(), loc.firstColumn(), loc.lastColumn()});
+            LintResult::OneLineMarked{loc});
       } else {
         auto vd = std::get<const MiniZinc::VarDecl *>(unused);
         auto &loc = vd->loc();
         env.emplace_result(
             loc.filename().c_str(), this, "unused variable/parameter",
-            LintResult::OneLineMarked{loc.firstLine(), loc.firstColumn(), loc.lastColumn()});
+            LintResult::OneLineMarked{loc});
       }
     }
   }

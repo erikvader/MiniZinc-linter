@@ -25,7 +25,7 @@ private:
         auto &loc = vd->loc();
         env.emplace_result(
             loc.filename().c_str(), this, "no explicit domain on variable declaration",
-            LintResult::OneLineMarked{loc.firstLine(), loc.firstColumn(), loc.lastColumn()});
+            LintResult::OneLineMarked{loc});
       }
     }
   }

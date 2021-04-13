@@ -70,7 +70,7 @@ void print_code(const std::string &filename, const LintResult::Region &region,
                    std::cout << prefix() << (is_subresult ? rang::fgB::cyan : rang::fgB::yellow)
                              << rang::style::bold;
                    print_marker(olm.startcol,
-                                std::min(olm.endcol, static_cast<unsigned int>(line.length())));
+                                olm.endcol.value_or(static_cast<unsigned int>(line.length())));
                    std::cout << rang::style::reset << std::endl;
                  },
              },
@@ -84,8 +84,10 @@ void file_position(std::ostream &stream, const LintResult::Region &region) {
                    stream << ml.startline << '-' << ml.endline << ':';
                  },
                  [&](const LintResult::OneLineMarked &olm) {
-                   stream << olm.line << '.' << olm.startcol << '-' << olm.line << '.' << olm.endcol
-                          << ':';
+                   stream << olm.line << '.' << olm.startcol;
+                   if (olm.endcol)
+                     stream << '-' << olm.line << '.' << olm.endcol.value();
+                   stream << ':';
                  },
              },
              region);

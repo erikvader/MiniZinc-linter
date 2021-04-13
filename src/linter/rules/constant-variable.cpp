@@ -22,9 +22,9 @@ private:
 
       if (rhs != nullptr && vd->type().isvar() && rhs->type().isPar()) {
         auto &loc = vd->loc();
-        env.emplace_result(
-            loc.filename().c_str(), this, "is only assigned to par values, shouldn't be var",
-            LintResult::OneLineMarked{loc.firstLine(), loc.firstColumn(), loc.lastColumn()});
+        env.emplace_result(loc.filename().c_str(), this,
+                           "is only assigned to par values, shouldn't be var",
+                           LintResult::OneLineMarked{loc});
 
       } else if (rhs == nullptr && vd->ti()->isarray() && env.is_every_index_touched(vd)) {
         std::vector<const MiniZinc::Location *> sub_locations;
@@ -37,14 +37,13 @@ private:
 
         if (all_par) {
           auto &loc = vd->loc();
-          LintResult lr(
-              loc.filename().c_str(), this, "is only constrained to par values, shouldn't be var",
-              LintResult::OneLineMarked{loc.firstLine(), loc.firstColumn(), loc.lastColumn()});
+          LintResult lr(loc.filename().c_str(), this,
+                        "is only constrained to par values, shouldn't be var",
+                        LintResult::OneLineMarked{loc});
 
           for (auto sloc : sub_locations) {
             lr.emplace_subresult(sloc->filename().c_str(), this, "constrained here",
-                                 LintResult::OneLineMarked{sloc->firstLine(), sloc->firstColumn(),
-                                                           sloc->lastColumn()});
+                                 LintResult::OneLineMarked{*sloc});
           }
 
           env.add_result(std::move(lr));

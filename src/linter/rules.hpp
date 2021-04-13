@@ -94,11 +94,13 @@ struct LintResult {
   LintRule const *rule;
   std::string message;
 
-  // TODO: handle if endcol comes from a different line
   struct OneLineMarked {
     unsigned int line;
     unsigned int startcol;
-    unsigned int endcol;
+    std::optional<unsigned int> endcol;
+    OneLineMarked(unsigned int line, unsigned int startcol, unsigned int endcol) noexcept;
+    OneLineMarked(unsigned int line, unsigned int startcol) noexcept;
+    OneLineMarked(const MiniZinc::Location &loc) noexcept;
     bool operator==(const OneLineMarked &other) const noexcept {
       return line == other.line && startcol == other.startcol && endcol == other.endcol;
     };
@@ -110,6 +112,8 @@ struct LintResult {
   struct MultiLine {
     unsigned int startline;
     unsigned int endline;
+    MultiLine(unsigned int startline, unsigned int endline) noexcept;
+    MultiLine(const MiniZinc::Location &loc) noexcept;
     bool operator==(const MultiLine &other) const noexcept {
       return startline == other.startline && endline == other.endline;
     };

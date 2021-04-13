@@ -18,7 +18,12 @@ std::ostream &operator<<(std::ostream &os, const LintResult &value) {
   os << "(" << value.rule->name << ")";
   std::visit(overload{[&](const std::monostate &) { os << "None"; },
                       [&](const LintResult::OneLineMarked &olm) {
-                        os << "OLM{" << olm.line << "," << olm.startcol << "," << olm.endcol << "}";
+                        os << "OLM{" << olm.line << "," << olm.startcol << ",";
+                        if (olm.endcol)
+                          os << olm.endcol.value();
+                        else
+                          os << "$";
+                        os << "}";
                       },
                       [&](const LintResult::MultiLine &ml) {
                         os << "ML{" << ml.startline << "," << ml.endline << "}";
@@ -26,6 +31,26 @@ std::ostream &operator<<(std::ostream &os, const LintResult &value) {
              value.region);
   return os;
 }
+
+LintResult::OneLineMarked::OneLineMarked(unsigned int line, unsigned int startcol,
+                                         unsigned int endcol) noexcept
+    : line(line), startcol(startcol), endcol(endcol) {}
+
+LintResult::OneLineMarked::OneLineMarked(unsigned int line, unsigned int startcol) noexcept
+    : line(line), startcol(startcol) {}
+
+LintResult::OneLineMarked::OneLineMarked(const MiniZinc::Location &loc) noexcept
+    : line(loc.firstLine()), startcol(loc.firstColumn()) {
+  if (loc.firstLine() == loc.lastLine()) {
+    endcol = loc.lastColumn();
+  }
+}
+
+LintResult::MultiLine::MultiLine(unsigned int startline, unsigned int endline) noexcept
+    : startline(startline), endline(endline) {}
+
+LintResult::MultiLine::MultiLine(const MiniZinc::Location &loc) noexcept
+    : startline(loc.firstLine()), endline(loc.lastLine()) {}
 
 void LintEnv::add_result(LintResult lr) {
   _results.push_back(std::move(lr));

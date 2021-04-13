@@ -32,7 +32,7 @@ private:
           auto &loc = where->loc();
           env.emplace_result(
               loc.filename().c_str(), this, "avoid var-expressions in where clauses",
-              LintResult::OneLineMarked{loc.firstLine(), loc.firstColumn(), loc.lastColumn()});
+              LintResult::OneLineMarked{loc});
         }
       }
     }
@@ -52,7 +52,7 @@ private:
           auto &loc = cond->loc();
           env.emplace_result(
               loc.filename().c_str(), this, "avoid var-expressions in if statements",
-              LintResult::OneLineMarked{loc.firstLine(), loc.firstColumn(), loc.lastColumn()});
+              LintResult::OneLineMarked{loc});
         }
       }
     }
