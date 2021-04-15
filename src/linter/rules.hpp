@@ -93,11 +93,7 @@ private:
   virtual void do_run(LintEnv &env) const = 0;
 };
 
-struct LintResult {
-  std::string filename;
-  LintRule const *rule;
-  std::string message;
-
+struct FileContents {
   struct OneLineMarked {
     unsigned int line;
     unsigned int startcol;
@@ -126,27 +122,67 @@ struct LintResult {
     };
   };
 
-  typedef std::variant<std::monostate, OneLineMarked, MultiLine> Region;
+  using Region = std::variant<std::monostate, OneLineMarked, MultiLine>;
   Region region;
-  std::vector<LintResult> sub_results;
+  std::string filename;
 
-  LintResult(std::string filename, const LintRule *rule, std::string message, Region region)
-      : filename(std::move(filename)), rule(rule), message(std::move(message)),
-        region(std::move(region)) {}
+  FileContents(std::string filename, Region region)
+      : region(region), filename(std::move(filename)) {
+    assert(!this->filename.empty() || std::holds_alternative<std::monostate>(this->region));
+  }
+  FileContents() = default;
 
-  void add_subresult(LintResult lr) { sub_results.push_back(std::move(lr)); }
+  bool is_empty() const noexcept { return filename.empty(); }
+
+  bool operator==(const FileContents &other) const noexcept {
+    return filename == other.filename && region == other.region;
+  }
+  bool operator<(const FileContents &other) const noexcept {
+    return std::tie(filename, region) < std::tie(other.filename, other.region);
+  }
+};
+
+struct LintResult {
+  struct Sub {
+    std::string message;
+    FileContents content;
+
+    template <typename... Args>
+    Sub(std::string message, Args &&...args)
+        : message(std::move(message)), content(std::forward<Args>(args)...) {}
+  };
+
+  LintRule const *rule;
+  std::string message;
+  FileContents content;
+  std::optional<std::string> rewrite;
+  std::vector<Sub> sub_results;
+
+  LintResult(std::string filename, const LintRule *rule, std::string message,
+             FileContents::Region region)
+      : rule(rule), message(std::move(message)), content(std::move(filename), region) {}
+
+  LintResult(std::string filename, const LintRule *rule, std::string message,
+             FileContents::Region region, const MiniZinc::Expression *rewrite)
+      : rule(rule), message(std::move(message)), content(std::move(filename), region) {
+    set_rewrite(rewrite);
+  }
+
   template <typename... Args>
   void emplace_subresult(Args &&...args) {
     sub_results.emplace_back(std::forward<Args>(args)...);
   }
 
+  void set_rewrite(const MiniZinc::Expression *);
+  void set_rewrite(const MiniZinc::Item *);
+
   // Are equal if both reference the same rule on the same place (doesn't care about message).
   bool operator==(const LintResult &other) const noexcept {
-    return filename == other.filename && rule == other.rule && region == other.region;
+    return rule == other.rule && content == other.content;
   };
 
   bool operator<(const LintResult &other) const noexcept {
-    return std::tie(filename, rule, region) < std::tie(other.filename, other.rule, other.region);
+    return std::tie(rule, content) < std::tie(other.rule, other.content);
   }
 
   friend std::ostream &operator<<(std::ostream &, const LintResult &);

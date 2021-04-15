@@ -23,9 +23,9 @@ private:
       if (isNoDomainVar(*vd) && vd->e() == nullptr &&
           env.get_equal_constrained_rhs(vd) == nullptr) {
         auto &loc = vd->loc();
-        env.emplace_result(
-            loc.filename().c_str(), this, "no explicit domain on variable declaration",
-            LintResult::OneLineMarked{loc});
+        env.emplace_result(loc.filename().c_str(), this,
+                           "no explicit domain on variable declaration",
+                           FileContents::OneLineMarked{loc});
       }
     }
   }

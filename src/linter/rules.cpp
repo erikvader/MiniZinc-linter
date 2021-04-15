@@ -2,6 +2,7 @@
 #include <linter/file_utils.hpp>
 #include <linter/overload.hpp>
 #include <linter/utils.hpp>
+#include <minizinc/prettyprinter.hh>
 
 namespace {
 template <typename T, typename F>
@@ -17,7 +18,7 @@ namespace LZN {
 std::ostream &operator<<(std::ostream &os, const LintResult &value) {
   os << "(" << value.rule->name << ")";
   std::visit(overload{[&](const std::monostate &) { os << "None"; },
-                      [&](const LintResult::OneLineMarked &olm) {
+                      [&](const FileContents::OneLineMarked &olm) {
                         os << "OLM{" << olm.line << "," << olm.startcol << ",";
                         if (olm.endcol)
                           os << olm.endcol.value();
@@ -25,31 +26,31 @@ std::ostream &operator<<(std::ostream &os, const LintResult &value) {
                           os << "$";
                         os << "}";
                       },
-                      [&](const LintResult::MultiLine &ml) {
+                      [&](const FileContents::MultiLine &ml) {
                         os << "ML{" << ml.startline << "," << ml.endline << "}";
                       }},
-             value.region);
+             value.content.region);
   return os;
 }
 
-LintResult::OneLineMarked::OneLineMarked(unsigned int line, unsigned int startcol,
-                                         unsigned int endcol) noexcept
+FileContents::OneLineMarked::OneLineMarked(unsigned int line, unsigned int startcol,
+                                           unsigned int endcol) noexcept
     : line(line), startcol(startcol), endcol(endcol) {}
 
-LintResult::OneLineMarked::OneLineMarked(unsigned int line, unsigned int startcol) noexcept
+FileContents::OneLineMarked::OneLineMarked(unsigned int line, unsigned int startcol) noexcept
     : line(line), startcol(startcol) {}
 
-LintResult::OneLineMarked::OneLineMarked(const MiniZinc::Location &loc) noexcept
+FileContents::OneLineMarked::OneLineMarked(const MiniZinc::Location &loc) noexcept
     : line(loc.firstLine()), startcol(loc.firstColumn()) {
   if (loc.firstLine() == loc.lastLine()) {
     endcol = loc.lastColumn();
   }
 }
 
-LintResult::MultiLine::MultiLine(unsigned int startline, unsigned int endline) noexcept
+FileContents::MultiLine::MultiLine(unsigned int startline, unsigned int endline) noexcept
     : startline(startline), endline(endline) {}
 
-LintResult::MultiLine::MultiLine(const MiniZinc::Location &loc) noexcept
+FileContents::MultiLine::MultiLine(const MiniZinc::Location &loc) noexcept
     : startline(loc.firstLine()), endline(loc.lastLine()) {}
 
 void LintEnv::add_result(LintResult lr) {
@@ -118,7 +119,7 @@ const LintEnv::VDVec &LintEnv::user_defined_variable_declarations() {
 }
 
 const LintEnv::AECMap &LintEnv::array_equal_constrained() {
-  return lazy_value(_array_equal_constrained, [this, model = _model]() {
+  return lazy_value(_array_equal_constrained, [this]() {
     LintEnv::AECMap map;
 
     {
@@ -298,6 +299,20 @@ bool LintEnv::is_every_index_touched(const MiniZinc::VarDecl *arraydecl) {
 
 SearchBuilder LintEnv::get_builder() const {
   return SearchBuilder().only_user_defined(_includePath).recursive();
+}
+
+void LintResult::set_rewrite(const MiniZinc::Expression *expr) {
+  std::ostringstream oss;
+  MiniZinc::Printer p(oss, 0, false);
+  p.print(expr);
+  rewrite = oss.str();
+}
+
+void LintResult::set_rewrite(const MiniZinc::Item *item) {
+  std::ostringstream oss;
+  MiniZinc::Printer p(oss, 80, false);
+  p.print(item);
+  rewrite = oss.str();
 }
 
 } // namespace LZN

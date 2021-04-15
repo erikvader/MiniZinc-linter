@@ -118,15 +118,13 @@ private:
       if (std::holds_alternative<const MiniZinc::FunctionI *>(unused)) {
         auto fi = std::get<const MiniZinc::FunctionI *>(unused);
         auto &loc = fi->loc();
-        env.emplace_result(
-            loc.filename().c_str(), this, "unused function",
-            LintResult::OneLineMarked{loc});
+        env.emplace_result(loc.filename().c_str(), this, "unused function",
+                           FileContents::OneLineMarked{loc});
       } else {
         auto vd = std::get<const MiniZinc::VarDecl *>(unused);
         auto &loc = vd->loc();
-        env.emplace_result(
-            loc.filename().c_str(), this, "unused variable/parameter",
-            LintResult::OneLineMarked{loc});
+        env.emplace_result(loc.filename().c_str(), this, "unused variable/parameter",
+                           FileContents::OneLineMarked{loc});
       }
     }
   }

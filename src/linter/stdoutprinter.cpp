@@ -7,6 +7,9 @@
 namespace {
 using namespace LZN;
 
+constexpr const char *BAR_PREFIX = "   |     ";
+constexpr const char *ARROW_PREFIX = "   ^     ";
+
 void print_marker(unsigned int startcol, unsigned int endcol) {
   for (unsigned int i = 0; i < startcol - 1; i++) {
     std::cout << ' ';
@@ -17,23 +20,45 @@ void print_marker(unsigned int startcol, unsigned int endcol) {
   }
 }
 
-// TODO: remove indentation from the lines printed directly from the file
-void print_code(const std::string &filename, const LintResult::Region &region,
-                CachedFileReader &reader, bool is_subresult = false) {
-
-  bool first_prefix = true;
-  auto prefix = [&first_prefix, is_subresult]() {
-    if (is_subresult && first_prefix) {
-      first_prefix = false;
-      return "   ^     ";
-    }
-    return "   |     ";
-  };
-
-  if (std::holds_alternative<std::monostate>(region)) {
-    std::cout << prefix() << std::endl;
-    return;
+template <typename T, typename P>
+void print_lines_prefixed(T begin, T end, P prefix) {
+  for (; begin != end; ++begin) {
+    std::cout << prefix() << *begin << std::endl;
   }
+}
+
+template <typename P>
+void print_lines_in_string_prefixed(const std::string &str, P prefix) {
+  if (str.empty())
+    return;
+
+  std::cout << prefix();
+  for (auto begin = str.cbegin(); begin != str.cend(); ++begin) {
+    if (*begin == '\n' && begin + 1 != str.cend()) {
+      std::cout << *begin << prefix();
+    } else {
+      std::cout << *begin;
+    }
+  }
+  std::cout << std::endl;
+}
+
+auto prefixer(bool use_arrow = false) {
+  return [print_arrow = use_arrow]() mutable {
+    if (print_arrow) {
+      print_arrow = false;
+      return ARROW_PREFIX;
+    }
+    return BAR_PREFIX;
+  };
+}
+
+// TODO: remove indentation from the lines printed directly from the file
+void print_code(const FileContents &contents, CachedFileReader &reader, bool is_subresult = false) {
+  if (contents.is_empty())
+    return;
+
+  auto prefix = prefixer(is_subresult);
 
   auto output_error = [](auto &err) {
     std::cerr << rang::fgB::red << rang::style::bold << "Couldn't read file because '" << err.what()
@@ -41,24 +66,22 @@ void print_code(const std::string &filename, const LintResult::Region &region,
   };
 
   std::visit(overload{
-                 [](const std::monostate &) { std::abort(); },
-                 [&](const LintResult::MultiLine &ml) {
+                 [&](const std::monostate &) { std::cout << prefix() << std::endl; },
+                 [&](const FileContents::MultiLine &ml) {
                    CachedFileReader::FileIter iter;
                    try {
-                     iter = reader.read(filename, ml.startline, ml.endline);
+                     iter = reader.read(contents.filename, ml.startline, ml.endline);
                    } catch (std::system_error &err) {
                      output_error(err);
                      return;
                    }
-                   for (; iter.first != iter.second; ++iter.first) {
-                     std::cout << prefix() << *iter.first << std::endl;
-                   }
+                   print_lines_prefixed(iter.first, iter.second, prefix);
                    std::cout << prefix() << std::endl;
                  },
-                 [&](const LintResult::OneLineMarked &olm) {
+                 [&](const FileContents::OneLineMarked &olm) {
                    CachedFileReader::FileIter iter;
                    try {
-                     iter = reader.read(filename, olm.line, olm.line);
+                     iter = reader.read(contents.filename, olm.line, olm.line);
                    } catch (std::system_error &err) {
                      output_error(err);
                      return;
@@ -74,40 +97,52 @@ void print_code(const std::string &filename, const LintResult::Region &region,
                    std::cout << rang::style::reset << std::endl;
                  },
              },
-             region);
+             contents.region);
 }
 
-void file_position(std::ostream &stream, const LintResult::Region &region) {
+void file_position(const FileContents &contents) {
+  if (contents.is_empty())
+    return;
+
+  std::cout << rang::style::bold << contents.filename << ':';
   std::visit(overload{
                  [](const std::monostate &) {},
-                 [&](const LintResult::MultiLine &ml) {
-                   stream << ml.startline << '-' << ml.endline << ':';
+                 [&](const FileContents::MultiLine &ml) {
+                   std::cout << ml.startline << '-' << ml.endline << ':';
                  },
-                 [&](const LintResult::OneLineMarked &olm) {
-                   stream << olm.line << '.' << olm.startcol;
+                 [&](const FileContents::OneLineMarked &olm) {
+                   std::cout << olm.line << '.' << olm.startcol;
                    if (olm.endcol)
-                     stream << '-' << olm.line << '.' << olm.endcol.value();
-                   stream << ':';
+                     std::cout << '-' << olm.line << '.' << olm.endcol.value();
+                   std::cout << ':';
                  },
              },
-             region);
+             contents.region);
 }
 
 void print_subresults(const LintResult &lintrule, CachedFileReader &reader) {
   for (auto &r : lintrule.sub_results) {
-    std::cout << rang::style::bold << r.filename << ':';
-    file_position(std::cout, r.region);
-    std::cout << rang::style::reset << ' ' << r.message << std::endl;
-    print_code(r.filename, r.region, reader, true);
+    file_position(r.content);
+    std::cout << rang::style::reset;
+    if (!r.content.is_empty())
+      std::cout << ' ';
+    std::cout << r.message << std::endl;
+    print_code(r.content, reader, true);
   }
 }
 
 void print_one_result(const LintResult &r, CachedFileReader &reader) {
-  std::cout << rang::style::bold << r.filename << ':';
-  file_position(std::cout, r.region);
-  std::cout << rang::style::reset << ' ' << r.message << rang::fgB::magenta << rang::style::bold
-            << " [" << r.rule->name << '(' << r.rule->id << ")]" << rang::style::reset << std::endl;
-  print_code(r.filename, r.region, reader);
+  file_position(r.content);
+  std::cout << rang::style::reset;
+  if (!r.content.is_empty())
+    std::cout << ' ';
+  std::cout << r.message << rang::fgB::magenta << rang::style::bold << " [" << r.rule->name << '('
+            << r.rule->id << ")]" << rang::style::reset << std::endl;
+  print_code(r.content, reader);
+  if (r.rewrite) {
+    std::cout << "rewrite as: " << std::endl;
+    print_lines_in_string_prefixed(r.rewrite.value(), prefixer());
+  }
   print_subresults(r, reader);
 }
 } // namespace

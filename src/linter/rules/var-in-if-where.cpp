@@ -30,9 +30,8 @@ private:
         auto &type = where->type();
         if (type.isvar()) {
           auto &loc = where->loc();
-          env.emplace_result(
-              loc.filename().c_str(), this, "avoid var-expressions in where clauses",
-              LintResult::OneLineMarked{loc});
+          env.emplace_result(loc.filename().c_str(), this, "avoid var-expressions in where clauses",
+                             FileContents::OneLineMarked{loc});
         }
       }
     }
@@ -50,9 +49,8 @@ private:
         auto &type = cond->type();
         if (type.isvar()) {
           auto &loc = cond->loc();
-          env.emplace_result(
-              loc.filename().c_str(), this, "avoid var-expressions in if statements",
-              LintResult::OneLineMarked{loc});
+          env.emplace_result(loc.filename().c_str(), this, "avoid var-expressions in if statements",
+                             FileContents::OneLineMarked{loc});
         }
       }
     }

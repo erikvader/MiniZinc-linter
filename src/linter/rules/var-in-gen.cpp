@@ -22,7 +22,7 @@ private:
         if (type.isIntSet() && type.isvar()) {
           auto &loc = comp->in(gen)->loc();
           env.emplace_result(loc.filename().c_str(), this, "avoid variables in generators",
-                             LintResult::OneLineMarked{loc});
+                             FileContents::OneLineMarked{loc});
         }
       }
     }

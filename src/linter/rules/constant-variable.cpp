@@ -24,7 +24,7 @@ private:
         auto &loc = vd->loc();
         env.emplace_result(loc.filename().c_str(), this,
                            "is only assigned to par values, shouldn't be var",
-                           LintResult::OneLineMarked{loc});
+                           FileContents::OneLineMarked{loc});
 
       } else if (rhs == nullptr && vd->ti()->isarray() && env.is_every_index_touched(vd)) {
         std::vector<const MiniZinc::Location *> sub_locations;
@@ -39,11 +39,11 @@ private:
           auto &loc = vd->loc();
           LintResult lr(loc.filename().c_str(), this,
                         "is only constrained to par values, shouldn't be var",
-                        LintResult::OneLineMarked{loc});
+                        FileContents::OneLineMarked{loc});
 
           for (auto sloc : sub_locations) {
-            lr.emplace_subresult(sloc->filename().c_str(), this, "constrained here",
-                                 LintResult::OneLineMarked{*sloc});
+            lr.emplace_subresult("constrained here", sloc->filename().c_str(),
+                                 FileContents::OneLineMarked{*sloc});
           }
 
           env.add_result(std::move(lr));
