@@ -5,4 +5,5 @@ target_sources(LinterLib PRIVATE
   var-in-gen.cpp
   var-in-if-where.cpp
   element-predicate.cpp
+  symmetry-breaking.cpp
   )
