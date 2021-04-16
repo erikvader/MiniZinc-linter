@@ -6,4 +6,5 @@ target_sources(LinterLib PRIVATE
   var-in-if-where.cpp
   element-predicate.cpp
   symmetry-breaking.cpp
+  one-based-arrays.cpp
   )
