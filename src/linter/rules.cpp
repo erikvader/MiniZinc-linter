@@ -315,4 +315,18 @@ void LintResult::set_rewrite(const MiniZinc::Item *item) {
   rewrite = oss.str();
 }
 
+void LintResult::add_relevant_decl(const MiniZinc::Expression *e) {
+  if (e == nullptr)
+    return;
+  auto id = e->dynamicCast<MiniZinc::Id>();
+  if (id == nullptr)
+    return;
+  auto decl = follow_id_to_decl(id);
+  if (decl == nullptr || decl->eid() != MiniZinc::Expression::E_VARDECL)
+    return;
+  const auto &loc = decl->loc();
+  emplace_subresult("relevant variable declaration", loc.filename().c_str(),
+                    FileContents::MultiLine(loc));
+}
+
 } // namespace LZN

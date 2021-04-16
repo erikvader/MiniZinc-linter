@@ -55,8 +55,8 @@ public:
       : _model(model), _env(env), _includePath(includePath) {}
 
   template <typename... Args>
-  void emplace_result(Args &&...args) {
-    _results.emplace_back(std::forward<Args>(args)...);
+  decltype(_results)::reference emplace_result(Args &&...args) {
+    return _results.emplace_back(std::forward<Args>(args)...);
   }
   void add_result(LintResult lr);
 
@@ -169,9 +169,11 @@ struct LintResult {
   }
 
   template <typename... Args>
-  void emplace_subresult(Args &&...args) {
-    sub_results.emplace_back(std::forward<Args>(args)...);
+  decltype(sub_results)::reference emplace_subresult(Args &&...args) {
+    return sub_results.emplace_back(std::forward<Args>(args)...);
   }
+
+  void add_relevant_decl(const MiniZinc::Expression *);
 
   void set_rewrite(const MiniZinc::Expression *);
   void set_rewrite(const MiniZinc::Item *);
