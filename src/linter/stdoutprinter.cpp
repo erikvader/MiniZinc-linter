@@ -21,14 +21,14 @@ void print_marker(unsigned int startcol, unsigned int endcol) {
 }
 
 template <typename T, typename P>
-void print_lines_prefixed(T begin, T end, P prefix) {
+void print_lines_prefixed(T begin, T end, P &prefix) {
   for (; begin != end; ++begin) {
     std::cout << prefix() << *begin << std::endl;
   }
 }
 
 template <typename P>
-void print_lines_in_string_prefixed(const std::string &str, P prefix) {
+void print_lines_in_string_prefixed(const std::string &str, P &prefix) {
   if (str.empty())
     return;
 
@@ -141,7 +141,8 @@ void print_one_result(const LintResult &r, CachedFileReader &reader) {
   print_code(r.content, reader);
   if (r.rewrite) {
     std::cout << "rewrite as: " << std::endl;
-    print_lines_in_string_prefixed(r.rewrite.value(), prefixer());
+    auto prefix = prefixer();
+    print_lines_in_string_prefixed(r.rewrite.value(), prefix);
   }
   print_subresults(r, reader);
 }
