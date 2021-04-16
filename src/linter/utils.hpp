@@ -1,5 +1,6 @@
 #pragma once
 
+#include <minizinc/eval_par.hh>
 #include <vector>
 
 namespace LZN {
@@ -23,5 +24,12 @@ bool unsorted_equal_cmp(ItModify modbeg, ItModify modend, It beg, It end, Cmp cm
   }
 
   return first_unsure == modend;
+}
+
+inline const MiniZinc::Expression *follow_id(const MiniZinc::Expression *e) {
+  return MiniZinc::follow_id(const_cast<MiniZinc::Expression *>(e));
+}
+inline const MiniZinc::Expression *follow_id_to_decl(const MiniZinc::Expression *e) {
+  return MiniZinc::follow_id_to_decl(const_cast<MiniZinc::Expression *>(e));
 }
 } // namespace LZN
