@@ -32,4 +32,20 @@ inline const MiniZinc::Expression *follow_id(const MiniZinc::Expression *e) {
 inline const MiniZinc::Expression *follow_id_to_decl(const MiniZinc::Expression *e) {
   return MiniZinc::follow_id_to_decl(const_cast<MiniZinc::Expression *>(e));
 }
+
+inline bool is_int_expr(const MiniZinc::Expression *e, long long int i) {
+  assert(e != nullptr);
+  if (auto intlit = e->dynamicCast<MiniZinc::IntLit>(); intlit != nullptr) {
+    return intlit->v() == MiniZinc::IntVal(i);
+  }
+  return false;
+}
+
+inline bool is_float_expr(const MiniZinc::Expression *e, double f) {
+  assert(e != nullptr);
+  if (auto floatlit = e->dynamicCast<MiniZinc::FloatLit>(); floatlit != nullptr) {
+    return floatlit->v() == MiniZinc::FloatVal(f);
+  }
+  return false;
+}
 } // namespace LZN

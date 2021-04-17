@@ -7,4 +7,5 @@ target_sources(LinterLib PRIVATE
   element-predicate.cpp
   symmetry-breaking.cpp
   one-based-arrays.cpp
+  compacted-if.cpp
   )

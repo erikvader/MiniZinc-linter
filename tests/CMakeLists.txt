@@ -11,6 +11,7 @@ add_executable(Test
   var-in-gen.test.cpp
   var-in-if-where.test.cpp
   one-based-arrays.test.cpp
+  compacted-if.test.cpp
   )
 target_link_libraries(Test PRIVATE LinterLib)
 
