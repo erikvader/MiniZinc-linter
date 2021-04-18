@@ -151,7 +151,8 @@ const LintEnv::AECMap &LintEnv::array_equal_constrained() {
           const auto access = forallsearcher.capture_cast<MiniZinc::ArrayAccess>(3);
           const auto decl = forallsearcher.capture_cast<MiniZinc::Id>(4)->decl();
           assert(decl != nullptr);
-          const MiniZinc::Expression *rhs = eq->rhs() == access ? eq->lhs() : eq->rhs();
+          const MiniZinc::Expression *rhs = other_side(eq, access);
+          assert(rhs != nullptr);
 
           map.emplace(decl, AECValue{access, rhs, comp});
         }
@@ -176,8 +177,9 @@ const LintEnv::AECMap &LintEnv::array_equal_constrained() {
           const auto eq = individualsearcher.capture_cast<MiniZinc::BinOp>(0);
           const auto access = individualsearcher.capture_cast<MiniZinc::ArrayAccess>(1);
           const auto decl = individualsearcher.capture_cast<MiniZinc::Id>(2)->decl();
-          const MiniZinc::Expression *rhs = eq->rhs() == access ? eq->lhs() : eq->rhs();
+          const MiniZinc::Expression *rhs = other_side(eq, access);
           assert(decl != nullptr);
+          assert(rhs != nullptr);
           map.emplace(decl, AECValue{access, rhs, nullptr});
         }
       }
@@ -264,34 +266,17 @@ bool LintEnv::is_every_index_touched(const MiniZinc::VarDecl *arraydecl) {
   if (first == last)
     return false;
 
-  std::vector<const MiniZinc::Expression *> ranges;
-  for (auto x : arraydecl->ti()->ranges()) {
-    ranges.push_back(x->domain());
-  }
-
-  std::vector<const MiniZinc::Expression *> comp_ranges;
   for (; first != last; ++first) {
     auto [arrayaccess, rhs, comp] = first->second;
     if (comp == nullptr)
       continue;
 
-    comp_ranges.clear();
-    for (unsigned int gen = 0; gen < comp->numberOfGenerators(); ++gen) {
-      if (comp->where(gen) != nullptr)
-        continue;
+    if (!is_array_access_simple(arrayaccess) ||
+        !comprehension_satisfies_array_access(comp, arrayaccess) ||
+        comprehension_contains_where(comp))
+      continue;
 
-      auto in = comp->in(gen);
-      for (unsigned int i = 0; i < comp->numberOfDecls(gen); ++i) {
-        comp_ranges.push_back(in);
-      }
-    }
-
-    bool same_ranges =
-        unsorted_equal_cmp(ranges.begin(), ranges.end(), comp_ranges.begin(), comp_ranges.end(),
-                           [](const MiniZinc::Expression *r, const MiniZinc::Expression *cr) {
-                             return MiniZinc::Expression::equal(r, cr);
-                           });
-    if (same_ranges)
+    if (comprehension_covers_whole_array(comp, arraydecl))
       return true;
   }
   return false;
