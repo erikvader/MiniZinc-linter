@@ -8,4 +8,5 @@ target_sources(LinterLib PRIVATE
   symmetry-breaking.cpp
   one-based-arrays.cpp
   compacted-if.cpp
+  zero-one-variables.cpp
   )
