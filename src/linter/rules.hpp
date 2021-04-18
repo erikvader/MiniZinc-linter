@@ -77,6 +77,7 @@ public:
 
   // return a builder that only searches for mostly user defined things
   SearchBuilder get_builder() const;
+  MiniZinc::Env &minizinc_env() { return _env; }
 };
 
 class LintRule {
@@ -157,6 +158,7 @@ struct LintResult {
   FileContents content;
   std::optional<std::string> rewrite;
   std::vector<Sub> sub_results;
+  bool depends_on_instance = false;
 
   LintResult(std::string filename, const LintRule *rule, std::string message,
              FileContents::Region region)
@@ -177,6 +179,8 @@ struct LintResult {
 
   void set_rewrite(const MiniZinc::Expression *);
   void set_rewrite(const MiniZinc::Item *);
+
+  void set_depends_on_instance();
 
   // Are equal if both reference the same rule on the same place (doesn't care about message).
   bool operator==(const LintResult &other) const noexcept {

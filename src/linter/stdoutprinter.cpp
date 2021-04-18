@@ -120,14 +120,27 @@ void file_position(const FileContents &contents) {
              contents.region);
 }
 
+std::vector<const LintResult::Sub *> notes_first(const std::vector<LintResult::Sub> &subres) {
+  std::vector<const LintResult::Sub *> res;
+  res.reserve(subres.size());
+  for (const auto &sub : subres) {
+    res.push_back(&sub);
+  }
+  std::stable_partition(res.begin(), res.end(),
+                        [](const LintResult::Sub *sub) { return sub->content.is_empty(); });
+  return res;
+}
+
 void print_subresults(const LintResult &lintrule, CachedFileReader &reader) {
-  for (auto &r : lintrule.sub_results) {
-    file_position(r.content);
-    std::cout << rang::style::reset;
-    if (!r.content.is_empty())
-      std::cout << ' ';
-    std::cout << r.message << std::endl;
-    print_code(r.content, reader, true);
+  for (const auto *r : notes_first(lintrule.sub_results)) {
+    if (r->content.is_empty()) {
+      std::cout << rang::fgB::green << "NOTE: " << rang::style::reset << r->message << std::endl;
+    } else {
+      file_position(r->content);
+      std::cout << rang::style::reset;
+      std::cout << ' ' << r->message << std::endl;
+      print_code(r->content, reader, true);
+    }
   }
 }
 

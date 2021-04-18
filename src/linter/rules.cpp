@@ -300,6 +300,11 @@ void LintResult::set_rewrite(const MiniZinc::Item *item) {
   rewrite = oss.str();
 }
 
+void LintResult::set_depends_on_instance() {
+  depends_on_instance = true;
+  emplace_subresult("This result depends on the current values of some parameters");
+}
+
 void LintResult::add_relevant_decl(const MiniZinc::Expression *e) {
   if (e == nullptr)
     return;
