@@ -117,7 +117,7 @@ TEST_CASE("unused variables and functions", "[rule]") {
 
   SECTION("used variable in unused let") {
     LZN_MODEL("int: x = let {int: y = 2} in y;");
-    LZN_EXPECTED(LZN_ONELINE(1, 1, 6), LZN_ONELINE(1, 15, 24));
+    LZN_EXPECTED(LZN_ONELINE(1, 1, 6));
   }
 
   SECTION("used variable in used let") {
@@ -128,7 +128,24 @@ TEST_CASE("unused variables and functions", "[rule]") {
 
   SECTION("let in unused function") {
     LZN_MODEL("function int: f() = let {int: x = 2} in x;");
-    LZN_EXPECTED(LZN_ONELINE(1, 1, 41), LZN_ONELINE(1, 26, 35));
+    LZN_EXPECTED(LZN_ONELINE(1, 1, 41));
+  }
+
+  SECTION("unused function with unused var argument") {
+    LZN_MODEL("function var int: f(var int: y) = 2;");
+    LZN_EXPECTED(LZN_ONELINE(1, 1, 35), LZN_ONELINE(1, 21, 30));
+  }
+
+  SECTION("unused function with used var argument") {
+    LZN_MODEL("function var int: f(var int: y) = y;");
+    LZN_EXPECTED(LZN_ONELINE(1, 1, 35));
+  }
+
+  SECTION("used function with unused var argument") {
+    LZN_MODEL("predicate f(var int: y, var int: z) = y = 1;\n"
+              "var int: asdasd;\n"
+              "constraint f(asdasd, asdasd)");
+    LZN_EXPECTED(LZN_ONELINE(1, 25, 34));
   }
 
   SECTION("par used as domain") {
