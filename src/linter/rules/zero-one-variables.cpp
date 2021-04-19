@@ -67,7 +67,7 @@ private:
         continue;
       if (!comprehension_covers_whole_array(comp, decl))
         continue;
-      if (!is_zero_one_intlit(decl->ti()))
+      if (!is_zero_one_expr(env, access))
         continue;
 
       const auto &loc = sum->loc();
@@ -153,9 +153,41 @@ private:
                               {mut_arr_id});
   }
 
+  bool contains_non_toplevel_var_in_access(const MiniZinc::Expression *e) const {
+    static const auto s = SearchBuilder()
+                              .under(ExpressionId::E_ARRAYACCESS)
+                              .filter(filter_arrayaccess_idx)
+                              .under(ExpressionId::E_ID)
+                              .capture()
+                              .build();
+    auto ms = s.search(e);
+    while (ms.next()) {
+      auto id = ms.capture_cast<MiniZinc::Id>(0);
+      if (id->decl() != nullptr && !id->decl()->toplevel())
+        return true;
+    }
+    return false;
+  }
+
   bool is_zero_one_expr(LintEnv &env, const MiniZinc::Expression *e) const {
     if (e == nullptr)
       return false;
+
+    // TODO: compute_int_bounds crashes (assertion fails) if `e` contains an array access using
+    // generators.
+    // forall(i in 1..4)(xs[i]) would crash if e = xs[i].
+    // Check bounds manually instead if e happens to be an array access.
+    if (contains_non_toplevel_var_in_access(e)) {
+      if (auto access = e->dynamicCast<MiniZinc::ArrayAccess>(); access != nullptr) {
+        if (auto id = access->v()->dynamicCast<MiniZinc::Id>(); id != nullptr) {
+          if (id->decl() != nullptr) {
+            return is_zero_one_intlit(id->decl()->ti());
+          }
+        }
+      }
+      return false;
+    }
+
     std::optional<MiniZinc::IntBounds> bounds;
     try {
       bounds = compute_int_bounds(env.minizinc_env().envi(), e);
