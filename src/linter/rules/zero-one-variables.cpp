@@ -14,13 +14,25 @@ private:
   using ExpressionId = MiniZinc::Expression::ExpressionId;
   using BT = MiniZinc::BinOpType;
 
+  struct Searchers {
+    const Search searcher_non_toplevel_var_in_access;
+  };
+
   virtual void do_run(LintEnv &env) const override {
-    case_impl(env, BT::BOT_LQ, MiniZinc::IntVal(1)); // expr1 = 1 -> expr2 = 1
-    case_impl(env, BT::BOT_GQ, MiniZinc::IntVal(0)); // expr1 = 0 -> expr2 = 0
-    case_sum(env);
+    const Searchers searchers{env.get_builder()
+                                  .global_filter(filter_out_annotations)
+                                  .under(ExpressionId::E_ARRAYACCESS)
+                                  .filter(filter_arrayaccess_idx)
+                                  .under(ExpressionId::E_ID)
+                                  .capture()
+                                  .build()};
+
+    case_impl(env, searchers, BT::BOT_LQ, MiniZinc::IntVal(1)); // expr1 = 1 -> expr2 = 1
+    case_impl(env, searchers, BT::BOT_GQ, MiniZinc::IntVal(0)); // expr1 = 0 -> expr2 = 0
+    case_sum(env, searchers);
   }
 
-  void case_sum(LintEnv &env) const {
+  void case_sum(LintEnv &env, const Searchers &searchers) const {
     const auto s = env.get_builder()
                        .in_everywhere()
                        .under(ExpressionId::E_CALL)
@@ -67,7 +79,7 @@ private:
         continue;
       if (!comprehension_covers_whole_array(comp, decl))
         continue;
-      if (!is_zero_one_expr(env, access))
+      if (!is_zero_one_expr(env, searchers, access))
         continue;
 
       const auto &loc = sum->loc();
@@ -81,7 +93,8 @@ private:
     }
   }
 
-  void case_impl(LintEnv &env, BT rewrite_type, MiniZinc::IntVal equal_to) const {
+  void case_impl(LintEnv &env, const Searchers &searchers, BT rewrite_type,
+                 MiniZinc::IntVal equal_to) const {
     const auto main_searcher = env.get_builder()
                                    .in_everywhere()
                                    .under(BT::BOT_IMPL)
@@ -118,7 +131,7 @@ private:
       auto expr1 = other_side(main.capture_cast<MiniZinc::BinOp>(1), main.capture(2));
       auto expr2 = other_side(off.capture_cast<MiniZinc::BinOp>(0), off.capture(1));
 
-      if (!is_zero_one_expr(env, expr1) || !is_zero_one_expr(env, expr2))
+      if (!is_zero_one_expr(env, searchers, expr1) || !is_zero_one_expr(env, searchers, expr2))
         continue;
 
       const auto &loc = main.capture(0)->loc();
@@ -153,14 +166,9 @@ private:
                               {mut_arr_id});
   }
 
-  bool contains_non_toplevel_var_in_access(const MiniZinc::Expression *e) const {
-    static const auto s = SearchBuilder()
-                              .under(ExpressionId::E_ARRAYACCESS)
-                              .filter(filter_arrayaccess_idx)
-                              .under(ExpressionId::E_ID)
-                              .capture()
-                              .build();
-    auto ms = s.search(e);
+  bool contains_non_toplevel_var_in_access(const MiniZinc::Expression *e,
+                                           const Searchers &searchers) const {
+    auto ms = searchers.searcher_non_toplevel_var_in_access.search(e);
     while (ms.next()) {
       auto id = ms.capture_cast<MiniZinc::Id>(0);
       if (id->decl() != nullptr && !id->decl()->toplevel())
@@ -169,7 +177,8 @@ private:
     return false;
   }
 
-  bool is_zero_one_expr(LintEnv &env, const MiniZinc::Expression *e) const {
+  bool is_zero_one_expr(LintEnv &env, const Searchers &searchers,
+                        const MiniZinc::Expression *e) const {
     if (e == nullptr)
       return false;
 
@@ -177,7 +186,7 @@ private:
     // generators.
     // forall(i in 1..4)(xs[i]) would crash if e = xs[i].
     // Check bounds manually instead if e happens to be an array access.
-    if (contains_non_toplevel_var_in_access(e)) {
+    if (contains_non_toplevel_var_in_access(e, searchers)) {
       if (auto access = e->dynamicCast<MiniZinc::ArrayAccess>(); access != nullptr) {
         if (auto id = access->v()->dynamicCast<MiniZinc::Id>(); id != nullptr) {
           if (id->decl() != nullptr) {

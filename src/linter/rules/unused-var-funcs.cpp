@@ -20,11 +20,20 @@ private:
   using VarGraph = std::unordered_multimap<Thing, const MiniZinc::VarDecl *>;
   using ThingSet = std::unordered_set<Thing>;
 
-  ThingSet find_unused(LintEnv &env) const {
-    Graph deps = find_dependencies(env);
+  using EID = MiniZinc::Expression::ExpressionId;
+
+  struct Searchers {
+    Search collect_dependans_id;
+    Search collect_dependans_call;
+    Search find_uses_id;
+    Search find_uses_call;
+  };
+
+  ThingSet find_unused(LintEnv &env, const Searchers &sear) const {
+    Graph deps = find_dependencies(env, sear);
     std::vector<Thing> uses;
-    find_uses<MiniZinc::Id>(env, MiniZinc::Expression::E_ID, uses);
-    find_uses<MiniZinc::Call>(env, MiniZinc::Expression::E_CALL, uses);
+    find_uses<MiniZinc::Id>(env, uses, sear.find_uses_id);
+    find_uses<MiniZinc::Call>(env, uses, sear.find_uses_call);
     recursively_remove(deps, uses);
 
     ThingSet unused;
@@ -65,15 +74,7 @@ private:
   }
 
   template <typename T>
-  void find_uses(LintEnv &env, MiniZinc::Expression::ExpressionId search_for,
-                 std::vector<Thing> &uses) const {
-    static const auto s = env.get_builder()
-                              .global_filter(filter_out_vardecls)
-                              .in_solve()
-                              .in_constraint()
-                              .under(search_for)
-                              .capture()
-                              .build();
+  void find_uses(LintEnv &env, std::vector<Thing> &uses, const Search &s) const {
     auto ms = s.search(env.model());
 
     while (ms.next()) {
@@ -83,12 +84,12 @@ private:
     }
   }
 
-  Graph find_dependencies(LintEnv &env) const {
+  Graph find_dependencies(LintEnv &env, const Searchers &sear) const {
     Graph g;
     auto collect = [&](Thing t, const MiniZinc::Expression *e) {
       if (e != nullptr) {
-        collect_dependans<MiniZinc::Id>(MiniZinc::Expression::E_ID, g, t, e, env);
-        collect_dependans<MiniZinc::Call>(MiniZinc::Expression::E_CALL, g, t, e, env);
+        collect_dependans<MiniZinc::Id>(g, t, e, sear.collect_dependans_id);
+        collect_dependans<MiniZinc::Call>(g, t, e, sear.collect_dependans_call);
       }
     };
 
@@ -121,12 +122,9 @@ private:
   }
 
   template <typename T>
-  void collect_dependans(MiniZinc::Expression::ExpressionId search_for, Graph &g, Thing t,
-                         const MiniZinc::Expression *e, const LintEnv &env) const {
+  void collect_dependans(Graph &g, Thing t, const MiniZinc::Expression *e, const Search &s) const {
     {
-      static const auto var_searcher =
-          env.get_builder().global_filter(filter_out_vardecls).under(search_for).capture().build();
-      auto vs = var_searcher.search(e);
+      auto vs = s.search(e);
       while (vs.next()) {
         auto id = vs.capture_cast<T>(0);
         auto decl = id->decl();
@@ -185,8 +183,29 @@ private:
     }
   }
 
+  static Search collect_dependans_searcher(LintEnv &env, EID search_for) {
+    return env.get_builder().global_filter(filter_out_vardecls).under(search_for).capture().build();
+  }
+
+  static Search find_uses_searcher(LintEnv &env, EID search_for) {
+    return env.get_builder()
+        .global_filter(filter_out_vardecls)
+        .in_solve()
+        .in_constraint()
+        .under(search_for)
+        .capture()
+        .build();
+  }
+
   virtual void do_run(LintEnv &env) const override {
-    for (auto unused : find_unused(env)) {
+    const Searchers sear{
+        collect_dependans_searcher(env, EID::E_ID),
+        collect_dependans_searcher(env, EID::E_CALL),
+        find_uses_searcher(env, EID::E_ID),
+        find_uses_searcher(env, EID::E_CALL),
+    };
+
+    for (auto unused : find_unused(env, sear)) {
       if (std::holds_alternative<const MiniZinc::FunctionI *>(unused)) {
         auto fi = std::get<const MiniZinc::FunctionI *>(unused);
         auto &loc = fi->loc();
