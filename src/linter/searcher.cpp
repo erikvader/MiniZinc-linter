@@ -413,6 +413,12 @@ bool filter_arrayaccess_name(const MiniZinc::Expression *root, const MiniZinc::E
   return root->cast<MiniZinc::ArrayAccess>()->v() == child;
 }
 
+bool filter_arrayaccess_idx(const MiniZinc::Expression *root, const MiniZinc::Expression *child) {
+  auto idxs = root->cast<MiniZinc::ArrayAccess>()->idx();
+  return std::any_of(idxs.begin(), idxs.end(),
+                     [child](const MiniZinc::Expression *i) { return i == child; });
+}
+
 bool filter_comprehension_expr(const MiniZinc::Expression *root,
                                const MiniZinc::Expression *child) {
   return root->cast<MiniZinc::Comprehension>()->e() == child;

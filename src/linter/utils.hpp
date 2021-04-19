@@ -56,7 +56,8 @@ inline bool is_float_expr(const MiniZinc::Expression *e, double f) {
   return false;
 }
 
-inline bool contains_par_id(const MiniZinc::Expression *e) {
+// check if e uses any toplevel parameters
+inline bool depends_on_instance(const MiniZinc::Expression *e) {
   if (e == nullptr)
     return false;
   // TODO: implement using EVisitor instead
@@ -64,12 +65,13 @@ inline bool contains_par_id(const MiniZinc::Expression *e) {
   auto ms = s.search(e);
   while (ms.next()) {
     auto id = ms.capture_cast<MiniZinc::Id>(0);
-    if (id->type().isPar()) {
+    // TODO: include pars in let-statements as well
+    if (id->type().isPar() && id->decl() != nullptr && id->decl()->toplevel()) {
       return true;
     }
     // TODO: check declaration for array accesses
     // TODO: follow a chain of variables if `id` is set to another variable
-    if (contains_par_id(id->decl()->ti()->domain()))
+    if (id->decl() != nullptr && depends_on_instance(id->decl()->ti()->domain()))
       return true;
   }
   return false;

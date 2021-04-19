@@ -73,7 +73,7 @@ private:
       const auto &loc = sum->loc();
       auto &res = env.emplace_result(loc.filename().c_str(), this, "abuse 0..1 domain",
                                      FileContents::OneLineMarked(loc), sum_rewrite(id));
-      if (contains_par_id(decl->ti()->domain())) {
+      if (depends_on_instance(decl->ti()->domain())) {
         res.set_depends_on_instance();
       }
       res.emplace_subresult("has domain 0..1", access->loc().filename().c_str(),
@@ -125,7 +125,7 @@ private:
       auto &res = env.emplace_result(loc.filename().c_str(), this, "abuse 0..1 domain",
                                      FileContents::OneLineMarked(loc),
                                      binary_rewrite(rewrite_type, expr1, expr2));
-      if (contains_par_id(expr1) || contains_par_id(expr2)) {
+      if (depends_on_instance(expr1) || depends_on_instance(expr2)) {
         res.set_depends_on_instance();
       }
 
