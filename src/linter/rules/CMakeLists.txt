@@ -9,4 +9,5 @@ target_sources(LinterLib PRIVATE
   one-based-arrays.cpp
   compacted-if.cpp
   zero-one-variables.cpp
+  globals-in-function.cpp
   )
