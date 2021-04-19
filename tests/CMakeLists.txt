@@ -13,6 +13,7 @@ add_executable(Test
   one-based-arrays.test.cpp
   compacted-if.test.cpp
   zero-one-variables.test.cpp
+  global-constraint-reified.test.cpp
   )
 target_link_libraries(Test PRIVATE LinterLib)
 

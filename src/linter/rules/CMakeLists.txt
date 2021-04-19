@@ -10,4 +10,5 @@ target_sources(LinterLib PRIVATE
   compacted-if.cpp
   zero-one-variables.cpp
   globals-in-function.cpp
+  global-constraint-reified.cpp
   )
