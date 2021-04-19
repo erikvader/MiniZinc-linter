@@ -73,20 +73,25 @@ private:
 
   Graph find_dependencies(LintEnv &env) const {
     Graph g;
-    for (auto fi : env.user_defined_functions()) {
-      if (fi->e() != nullptr) {
-        collect_dependans<MiniZinc::Id>(MiniZinc::Expression::E_ID, g, fi, fi->e(), env);
-        collect_dependans<MiniZinc::Call>(MiniZinc::Expression::E_CALL, g, fi, fi->e(), env);
+    auto collect = [&](Thing t, const MiniZinc::Expression *e) {
+      if (e != nullptr) {
+        collect_dependans<MiniZinc::Id>(MiniZinc::Expression::E_ID, g, t, e, env);
+        collect_dependans<MiniZinc::Call>(MiniZinc::Expression::E_CALL, g, t, e, env);
       }
+    };
+
+    for (auto fi : env.user_defined_functions()) {
+      collect(fi, fi->e());
       if (g.count(fi) == 0) {
         g.emplace(fi, std::monostate());
       }
     }
 
     for (auto vd : env.user_defined_variable_declarations()) {
-      if (vd->e() != nullptr) {
-        collect_dependans<MiniZinc::Id>(MiniZinc::Expression::E_ID, g, vd, vd->e(), env);
-        collect_dependans<MiniZinc::Call>(MiniZinc::Expression::E_CALL, g, vd, vd->e(), env);
+      collect(vd, vd->e());
+      collect(vd, vd->ti()->domain());
+      for (auto r : vd->ti()->ranges()) {
+        collect(vd, r->domain());
       }
       if (g.count(vd) == 0) {
         g.emplace(vd, std::monostate());

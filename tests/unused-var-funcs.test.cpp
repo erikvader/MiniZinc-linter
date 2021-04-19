@@ -131,5 +131,25 @@ TEST_CASE("unused variables and functions", "[rule]") {
     LZN_EXPECTED(LZN_ONELINE(1, 1, 41), LZN_ONELINE(1, 26, 35));
   }
 
+  SECTION("par used as domain") {
+    LZN_MODEL("int: K;\n"
+              "var 0..K: x;\n"
+              "constraint x = 0;");
+    LZN_EXPECTED();
+  }
+
+  SECTION("par used as domain on unused var") {
+    LZN_MODEL("int: K;\n"
+              "var 0..K: x;\n");
+    LZN_EXPECTED(LZN_ONELINE(1, 1, 6), LZN_ONELINE(2, 1, 11));
+  }
+
+  SECTION("par used as range on array") {
+    LZN_MODEL("int: K = 5;\n"
+              "array[1..K] of var 0..1: x;\n"
+              "constraint x[1] = 0;");
+    LZN_EXPECTED();
+  }
+
   LZN_TEST_CASE_END
 }
