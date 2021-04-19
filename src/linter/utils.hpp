@@ -125,4 +125,11 @@ inline bool comprehension_contains_where(const MiniZinc::Comprehension *comp) {
   }
   return false;
 }
+
+inline bool operator==(const MiniZinc::Location &r1, const MiniZinc::Location &r2) {
+  return r1.filename() == r2.filename() && r1.firstLine() == r2.firstLine() &&
+         r1.firstColumn() == r2.firstColumn() && r1.lastLine() == r2.lastLine() &&
+         r1.lastColumn() == r2.lastColumn() && r1.isIntroduced() == r2.isIntroduced() &&
+         r1.isNonAlloc() == r2.isNonAlloc();
+}
 } // namespace LZN

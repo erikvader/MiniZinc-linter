@@ -196,6 +196,11 @@ const LintEnv::UDFVec &LintEnv::user_defined_functions() {
     LintEnv::UDFVec vec;
     while (ms.next()) {
       auto fi = ms.cur_item()->cast<MiniZinc::FunctionI>();
+      // NOTE: A function declared with var arguments generats a par version of the same function in
+      // the exact same location. It doesn't seem like it is possible to use this new variant, so it
+      // is not included. Both should be considered as the same function anyway.
+      if (!vec.empty() && vec.back()->id() == fi->id() && vec.back()->loc() == fi->loc())
+        continue;
       vec.push_back(fi);
     }
     return vec;
