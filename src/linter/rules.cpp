@@ -53,6 +53,24 @@ FileContents::MultiLine::MultiLine(unsigned int startline, unsigned int endline)
 FileContents::MultiLine::MultiLine(const MiniZinc::Location &loc) noexcept
     : startline(loc.firstLine()), endline(loc.lastLine()) {}
 
+bool FileContents::is_valid() const noexcept {
+  if (is_empty())
+    return true;
+  return !filename.empty() &&
+         std::visit(overload{
+                        [](const std::monostate &) { return true; },
+                        [](const FileContents::MultiLine &ml) {
+                          return ml.startline > 0 && ml.endline > 0 && ml.endline >= ml.startline;
+                        },
+                        [](const FileContents::OneLineMarked &olm) {
+                          return olm.line > 0 && olm.startcol > 0 &&
+                                 (!olm.endcol || olm.endcol.value() > 0) &&
+                                 (!olm.endcol || olm.endcol.value() >= olm.startcol);
+                        },
+                    },
+                    region);
+}
+
 void LintEnv::add_result(LintResult lr) {
   _results.push_back(std::move(lr));
 }

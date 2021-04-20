@@ -128,12 +128,13 @@ struct FileContents {
   std::string filename;
 
   FileContents(std::string filename, Region region)
-      : region(region), filename(std::move(filename)) {
-    assert(!this->filename.empty() || std::holds_alternative<std::monostate>(this->region));
-  }
+      : region(region), filename(std::move(filename)) {}
   FileContents() = default;
 
-  bool is_empty() const noexcept { return filename.empty(); }
+  bool is_empty() const noexcept {
+    return filename.empty() && std::holds_alternative<std::monostate>(region);
+  }
+  bool is_valid() const noexcept;
 
   bool operator==(const FileContents &other) const noexcept {
     return filename == other.filename && region == other.region;

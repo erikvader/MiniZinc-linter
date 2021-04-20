@@ -11,6 +11,7 @@ constexpr const char *BAR_PREFIX = "   |     ";
 constexpr const char *ARROW_PREFIX = "   ^     ";
 
 void print_marker(unsigned int startcol, unsigned int endcol) {
+  assert(endcol >= startcol && startcol > 0 && endcol > 0);
   for (unsigned int i = 0; i < startcol - 1; i++) {
     std::cout << ' ';
   }
@@ -58,10 +59,17 @@ void print_code(const FileContents &contents, CachedFileReader &reader, bool is_
   if (contents.is_empty())
     return;
 
+  if (!contents.is_valid()) {
+    std::cout << rang::fgB::red << rang::style::bold
+              << "Couldn't print because file location is invalid" << rang::style::reset
+              << std::endl;
+    return;
+  }
+
   auto prefix = prefixer(is_subresult);
 
   auto output_error = [](auto &err) {
-    std::cerr << rang::fgB::red << rang::style::bold << "Couldn't read file because '" << err.what()
+    std::cout << rang::fgB::red << rang::style::bold << "Couldn't read file because '" << err.what()
               << "'" << rang::style::reset << std::endl;
   };
 

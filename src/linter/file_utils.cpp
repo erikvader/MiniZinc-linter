@@ -37,7 +37,7 @@ void CachedFileReader::read_to_cache(const CachedFileReader::FilePath &filename)
 
 CachedFileReader::FileIter CachedFileReader::read(const CachedFileReader::FilePath &filename,
                                                   unsigned int startline, unsigned int endline) {
-  assert(endline >= startline);
+  assert(endline >= startline && endline > 0 && startline > 0);
   read_to_cache(filename);
   const auto &contents = cache.at(filename);
   auto beg =
