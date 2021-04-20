@@ -59,10 +59,12 @@ bool SearchLocs::any() const {
 
 bool SearchNode::match(const MiniZinc::Expression *i) const {
   bool right_expr = i->eid() == target;
-  if (right_expr && target == ExpressionId::E_BINOP) {
+  if (right_expr && target == ExpressionId::E_BINOP &&
+      !std::holds_alternative<std::monostate>(sub_target)) {
     return std::get<BinOpType>(sub_target) == i->cast<MiniZinc::BinOp>()->op();
   }
-  if (right_expr && target == ExpressionId::E_UNOP) {
+  if (right_expr && target == ExpressionId::E_UNOP &&
+      !std::holds_alternative<std::monostate>(sub_target)) {
     return std::get<UnOpType>(sub_target) == i->cast<MiniZinc::UnOp>()->op();
   }
   return right_expr;

@@ -11,4 +11,5 @@ target_sources(LinterLib PRIVATE
   zero-one-variables.cpp
   globals-in-function.cpp
   global-constraint-reified.cpp
+  operators-on-var.cpp
   )

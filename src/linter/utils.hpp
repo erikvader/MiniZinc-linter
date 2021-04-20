@@ -132,4 +132,19 @@ inline bool operator==(const MiniZinc::Location &r1, const MiniZinc::Location &r
          r1.lastColumn() == r2.lastColumn() && r1.isIntroduced() == r2.isIntroduced() &&
          r1.isNonAlloc() == r2.isNonAlloc();
 }
+
+inline std::optional<std::tuple<unsigned int, unsigned int, unsigned int, unsigned int>>
+location_between(const MiniZinc::Location &left, const MiniZinc::Location &right) {
+  if (left.isIntroduced() || right.isIntroduced())
+    return std::nullopt;
+  auto ll = left.lastLine();
+  auto rl = right.firstLine();
+  auto lc = left.lastColumn() + 1;
+  auto rc = right.firstColumn() - 1;
+  if (ll > rl)
+    return std::nullopt;
+  if (ll == rl && lc > rc)
+    return std::nullopt;
+  return std::make_tuple(ll, lc, rl, rc);
+}
 } // namespace LZN
