@@ -22,8 +22,9 @@ private:
 
       if (rhs != nullptr && vd->type().isvar() && rhs->type().isPar()) {
         auto &loc = vd->loc();
-        env.emplace_result(FileContents::Type::OneLineMarked, loc, this,
-                           "is only assigned to par values, shouldn't be var");
+        auto &res = env.emplace_result(FileContents::Type::OneLineMarked, loc, this,
+                                       "is only assigned to par values, shouldn't be var");
+        res.emplace_subresult("assigned here", FileContents::Type::OneLineMarked, rhs->loc());
 
       } else if (rhs == nullptr && vd->ti()->isarray() && env.is_every_index_touched(vd)) {
         std::vector<const MiniZinc::Location *> sub_locations;
