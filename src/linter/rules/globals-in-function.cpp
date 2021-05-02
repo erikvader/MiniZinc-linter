@@ -20,9 +20,8 @@ private:
         auto id = ms.capture_cast<MiniZinc::Id>(0);
         if (id->decl() != nullptr && id->decl()->toplevel() && id->type().isvar()) {
           const auto &loc = id->loc();
-          env.emplace_result(loc.filename().c_str(), this,
-                             "avoid using globals in functions, pass as an argument instead",
-                             FileContents::OneLineMarked(loc));
+          env.emplace_result(FileContents::Type::OneLineMarked, loc, this,
+                             "avoid using globals in functions, pass as an argument instead");
         }
       }
     }

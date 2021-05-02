@@ -26,8 +26,8 @@ private:
             new MiniZinc::BinOp(MiniZinc::Location().introduce(), arracc, BT::BOT_EQ, call->arg(2));
 
         const auto &loc = call->loc();
-        env.emplace_result(loc.filename().c_str(), this, "hard to read array access",
-                           FileContents::OneLineMarked(loc), rewrite);
+        env.emplace_result(FileContents::Type::OneLineMarked, loc, this,
+                           "hard to read array access", rewrite);
       }
     }
   }

@@ -50,7 +50,7 @@ private:
           std::string msg = "avoid using ";
           msg += bin->opToString().c_str();
           msg += " on var-expressions";
-          env.emplace_result(loc.filename().c_str(), this, std::move(msg), region);
+          env.emplace_result(region, loc, this, std::move(msg));
         }
       default:;
       }
@@ -72,7 +72,7 @@ private:
         std::string msg = "avoid using ";
         msg += unop->opToString().c_str();
         msg += " on var-expressions";
-        env.emplace_result(loc.filename().c_str(), this, std::move(msg), region);
+        env.emplace_result(region, loc, this, std::move(msg));
       }
     }
   }

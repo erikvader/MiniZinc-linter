@@ -44,8 +44,8 @@ private:
         const std::vector<MiniZinc::Expression *> fargs = {const_cast<MiniZinc::Call *>(call)};
         MiniZinc::GCLock lock;
         auto rewrite = new MiniZinc::Call(MiniZinc::Location().introduce(), fname, fargs);
-        env.emplace_result(loc.filename().c_str(), this, "common symmetry breaker",
-                           FileContents::OneLineMarked(loc), rewrite);
+        env.emplace_result(FileContents::Type::OneLineMarked, loc, this, "common symmetry breaker",
+                           rewrite);
       }
     }
   }

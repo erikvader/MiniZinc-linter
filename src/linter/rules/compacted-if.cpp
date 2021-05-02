@@ -23,8 +23,8 @@ private:
       if (!is_compactable_ite(ite))
         continue;
       const auto &loc = ite->loc();
-      env.emplace_result(loc.filename().c_str(), this, "should be compacted",
-                         FileContents::OneLineMarked(loc), rewrite(ite));
+      env.emplace_result(FileContents::Type::OneLineMarked, loc, this, "should be compacted",
+                         rewrite(ite));
     }
   }
 

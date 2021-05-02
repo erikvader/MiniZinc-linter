@@ -48,8 +48,8 @@ private:
       for (auto r : vd->ti()->ranges()) {
         if (!starts_at_one(r)) {
           const auto &loc = r->loc();
-          auto &lr = env.emplace_result(loc.filename().c_str(), this, "better to start at 1",
-                                        FileContents::OneLineMarked(loc));
+          auto &lr = env.emplace_result(FileContents::Type::OneLineMarked, loc, this,
+                                        "better to start at 1");
           lr.add_relevant_decl(r->domain());
         }
       }

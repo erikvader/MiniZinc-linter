@@ -29,8 +29,8 @@ private:
             path_included_from(*s.include_path(), decl_path) && decl->ti()->type().isvarbool() &&
             con != call) {
           const auto &loc = call->loc();
-          env.emplace_result(loc.filename().c_str(), this, "reified global constraint",
-                             FileContents::OneLineMarked(loc));
+          env.emplace_result(FileContents::Type::OneLineMarked, loc, this,
+                             "reified global constraint");
         }
       }
     }

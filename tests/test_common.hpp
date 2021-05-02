@@ -56,4 +56,4 @@ inline constexpr const char *const MODEL_FILENAME = "testmodel";
   results = lenv.take_results();
 
 #define LZN_ONELINE(...)                                                                           \
-  LZN::LintResult(MODEL_FILENAME, rule, "", LZN::FileContents::OneLineMarked{__VA_ARGS__})
+  LZN::LintResult(LZN::FileContents::OneLineMarked{__VA_ARGS__}, MODEL_FILENAME, rule, "")

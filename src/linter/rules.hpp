@@ -95,6 +95,8 @@ private:
 };
 
 struct FileContents {
+  enum class Type { OneLineMarked, MultiLine, Empty };
+
   struct OneLineMarked {
     unsigned int line;
     unsigned int startcol;
@@ -127,8 +129,20 @@ struct FileContents {
   Region region;
   std::string filename;
 
-  FileContents(std::string filename, Region region)
-      : region(region), filename(std::move(filename)) {}
+  FileContents(const Region r, const MiniZinc::Location &loc) : FileContents(Type::Empty, loc) {
+    region = r;
+  }
+  FileContents(const Type tag, const MiniZinc::Location &loc) {
+    switch (tag) {
+    case Type::OneLineMarked: region.emplace<OneLineMarked>(loc); break;
+    case Type::MultiLine: region.emplace<MultiLine>(loc); break;
+    case Type::Empty: break;
+    }
+    auto fname = loc.filename().c_str();
+    if (fname != nullptr)
+      filename = fname;
+  }
+  FileContents(const Region r, const char *f) : region(r), filename(f) {}
   FileContents() = default;
 
   bool is_empty() const noexcept {
@@ -161,13 +175,15 @@ struct LintResult {
   std::vector<Sub> sub_results;
   bool depends_on_instance = false;
 
-  LintResult(std::string filename, const LintRule *rule, std::string message,
-             FileContents::Region region)
-      : rule(rule), message(std::move(message)), content(std::move(filename), region) {}
+  template <typename RegionOrType, typename LocOrCstr>
+  LintResult(const RegionOrType rot, const LocOrCstr &loc, const LintRule *rule,
+             std::string message)
+      : rule(rule), message(std::move(message)), content(rot, loc) {}
 
-  LintResult(std::string filename, const LintRule *rule, std::string message,
-             FileContents::Region region, const MiniZinc::Expression *rewrite)
-      : rule(rule), message(std::move(message)), content(std::move(filename), region) {
+  template <typename RegionOrType, typename LocOrCstr>
+  LintResult(const RegionOrType rot, const LocOrCstr &loc, const LintRule *rule,
+             std::string message, const MiniZinc::Expression *rewrite)
+      : rule(rule), message(std::move(message)), content(rot, loc) {
     set_rewrite(rewrite);
   }
 

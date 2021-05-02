@@ -21,8 +21,8 @@ private:
         auto &type = comp->in(gen)->type();
         if (type.isIntSet() && type.isvar()) {
           auto &loc = comp->in(gen)->loc();
-          env.emplace_result(loc.filename().c_str(), this, "avoid variables in generators",
-                             FileContents::OneLineMarked{loc});
+          env.emplace_result(FileContents::Type::OneLineMarked, loc, this,
+                             "avoid variables in generators");
         }
       }
     }
