@@ -9,22 +9,37 @@ using namespace LZN;
 
 constexpr const char *BAR_PREFIX = "   |     ";
 constexpr const char *ARROW_PREFIX = "   ^     ";
+constexpr const std::size_t MAX_LINE = 200;
 
 void print_marker(unsigned int startcol, unsigned int endcol) {
   assert(endcol >= startcol && startcol > 0 && endcol > 0);
-  for (unsigned int i = 0; i < startcol - 1; i++) {
+  for (unsigned int i = 0; i < startcol - 1 && i < MAX_LINE; i++) {
     std::cout << ' ';
   }
   std::cout << '^';
-  for (unsigned int i = startcol + 1; i <= endcol; i++) {
+  for (unsigned int i = startcol + 1; i <= endcol && i <= MAX_LINE; i++) {
     std::cout << '~';
+  }
+}
+
+std::size_t print_line(const std::string &s) {
+  if (s.length() <= MAX_LINE) {
+    std::cout << s;
+    return s.length();
+  } else {
+    std::string_view view = s;
+    view = view.substr(0, MAX_LINE);
+    std::cout << view << "...";
+    return MAX_LINE;
   }
 }
 
 template <typename T, typename P>
 void print_lines_prefixed(T begin, T end, P &prefix) {
   for (; begin != end; ++begin) {
-    std::cout << prefix() << *begin << std::endl;
+    std::cout << prefix();
+    print_line(*begin);
+    std::cout << std::endl;
   }
 }
 
@@ -33,6 +48,7 @@ void print_lines_in_string_prefixed(const std::string &str, P &prefix) {
   if (str.empty())
     return;
 
+  // TODO: limit length of lines?
   std::cout << prefix();
   for (auto begin = str.cbegin(); begin != str.cend(); ++begin) {
     if (*begin == '\n' && begin + 1 != str.cend()) {
@@ -97,11 +113,13 @@ void print_code(const FileContents &contents, CachedFileReader &reader, bool is_
                    if (iter.first == iter.second)
                      return;
                    const auto &line = *iter.first;
-                   std::cout << prefix() << line << std::endl;
+                   std::cout << prefix();
+                   std::size_t printed_len = print_line(line);
+                   std::cout << std::endl;
                    std::cout << prefix() << (is_subresult ? rang::fgB::cyan : rang::fgB::yellow)
                              << rang::style::bold;
                    print_marker(olm.startcol,
-                                olm.endcol.value_or(static_cast<unsigned int>(line.length())));
+                                olm.endcol.value_or(static_cast<unsigned int>(printed_len)));
                    std::cout << rang::style::reset << std::endl;
                  },
              },
