@@ -117,6 +117,11 @@ bool ExprSearcher::next() {
   return false;
 }
 
+ExprSearcher::PathIters ExprSearcher::current_path() const {
+  assert(has_result());
+  return std::make_pair(path.crbegin(), path.crend());
+}
+
 void ExprSearcher::queue_children_of(const MiniZinc::Expression *cur) {
   auto filter = [this, cur](const MiniZinc::Expression *root, const MiniZinc::Expression *child) {
     if (global_filters != nullptr) {
@@ -328,6 +333,11 @@ void ModelSearcher::iters_push(const MiniZinc::Model *m) {
     return;
   iters.emplace(m->begin(), m->end());
   iters_pushed = true;
+}
+
+ExprSearcher::PathIters ModelSearcher::current_path() const {
+  assert(expr_searcher);
+  return expr_searcher.value().current_path();
 }
 
 ModelSearcher::ModelSearcher(const MiniZinc::Model *m, const Search &search)

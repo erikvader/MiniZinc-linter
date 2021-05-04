@@ -10,6 +10,20 @@ TEST_CASE("global constraint reified", "[rule]") {
     LZN_EXPECTED();
   }
 
+  SECTION("okay conjunctive alldifferent") {
+    LZN_MODEL("include \"globals.mzn\";\n"
+              "array[1..5] of var int: xs;\n"
+              "constraint alldifferent(xs) /\\ alldifferent(xs);");
+    LZN_EXPECTED();
+  }
+
+  SECTION("forall is fine") {
+    LZN_MODEL("include \"globals.mzn\";\n"
+              "array[1..5] of var bool: xs;\n"
+              "constraint forall(xs);");
+    LZN_EXPECTED();
+  }
+
   SECTION("bad alldifferent") {
     LZN_MODEL("include \"globals.mzn\";\n"
               "array[1..5] of var int: xs;\n"

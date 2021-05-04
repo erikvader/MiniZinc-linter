@@ -86,6 +86,10 @@ public:
   void abort();
   bool next();
 
+  using PathIter = decltype(path)::const_reverse_iterator;
+  using PathIters = std::pair<PathIter, PathIter>;
+  PathIters current_path() const;
+
 private:
   void queue_children_of(const MiniZinc::Expression *cur);
 };
@@ -115,6 +119,7 @@ protected:
   void advance_iters();
   const MiniZinc::Item *iters_top() const;
   void iters_push(const MiniZinc::Model *);
+  ExprSearcher::PathIters current_path() const;
 };
 
 } // namespace LZN::Impl
@@ -149,6 +154,7 @@ public:
     const MiniZinc::Item *cur_item() const noexcept;
     const MiniZinc::Expression *capture(std::size_t n) const;
     void skip_item();
+    using Impl::ModelSearcher::current_path;
 
     template <typename T>
     const T *capture_cast(std::size_t n) const {
@@ -168,6 +174,7 @@ public:
     }
 
   public:
+    using Impl::ExprSearcher::current_path;
     bool next() { return Impl::ExprSearcher::next(); }
     const MiniZinc::Expression *capture(std::size_t n) const {
       return Impl::ExprSearcher::capture(n);

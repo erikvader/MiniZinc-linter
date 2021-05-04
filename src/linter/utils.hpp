@@ -147,4 +147,19 @@ location_between(const MiniZinc::Location &left, const MiniZinc::Location &right
     return std::nullopt;
   return std::make_tuple(ll, lc, rl, rc);
 }
+
+// Returns true of the current item in searcher is certainly not reified.
+// Returns false if not sure.
+template <typename T>
+inline bool is_not_reified(const T &searcher) {
+  auto [b, e] = searcher.current_path();
+  assert(b != e);
+  b++;
+  return std::all_of(b, e, [](const MiniZinc::Expression *e) {
+    if (auto bo = e->dynamicCast<MiniZinc::BinOp>(); bo != nullptr) {
+      return bo->op() == MiniZinc::BinOpType::BOT_AND;
+    }
+    return false;
+  });
+}
 } // namespace LZN

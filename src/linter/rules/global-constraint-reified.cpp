@@ -1,6 +1,7 @@
 #include <linter/file_utils.hpp>
 #include <linter/registry.hpp>
 #include <linter/rules.hpp>
+#include <linter/utils.hpp>
 
 namespace {
 using namespace LZN;
@@ -27,7 +28,7 @@ private:
         auto decl_path = decl->loc().filename();
         if (s.include_path() != nullptr && decl_path.size() > 0 &&
             path_included_from(*s.include_path(), decl_path) && decl->ti()->type().isvarbool() &&
-            con != call) {
+            !decl->fromStdLib() && !is_not_reified(ms)) {
           const auto &loc = call->loc();
           env.emplace_result(FileContents::Type::OneLineMarked, loc, this,
                              "reified global constraint");
