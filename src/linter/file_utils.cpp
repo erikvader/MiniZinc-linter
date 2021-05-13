@@ -13,6 +13,8 @@ std::vector<std::string> lines_of_file(const std::string &filename) {
   std::vector<std::string> lines;
   std::string line;
   while (std::getline(f, line)) {
+    if (!line.empty() && line[line.length() - 1] == '\r')
+      line.pop_back();
     lines.push_back(std::move(line));
   }
   if (f.bad()) {
