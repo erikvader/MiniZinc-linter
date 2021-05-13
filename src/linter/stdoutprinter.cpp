@@ -6,6 +6,8 @@
 
 namespace {
 using namespace LZN;
+using Lines = std::vector<std::string>;
+using LinesIter = Lines::const_iterator;
 
 constexpr const char *BAR_PREFIX = "   |     ";
 constexpr const char *ARROW_PREFIX = "   ^     ";
@@ -22,42 +24,78 @@ void print_marker(unsigned int startcol, unsigned int endcol) {
   }
 }
 
-std::size_t print_line(const std::string &s) {
-  if (s.length() <= MAX_LINE) {
-    std::cout << s;
-    return s.length();
-  } else {
-    std::string_view view = s;
-    view = view.substr(0, MAX_LINE);
-    std::cout << view << "...";
-    return MAX_LINE;
+Lines split_lines(const std::string &s) {
+  Lines lines;
+  const char delim = '\n';
+  std::size_t start = 0;
+  while (start < s.length()) {
+    const std::size_t found = s.find(delim, start);
+    if (found == std::string::npos) {
+      break;
+    }
+    lines.push_back(s.substr(start, found - start));
+    start = found + 1;
   }
+  if (start < s.length()) {
+    lines.push_back(s.substr(start));
+  }
+  return lines;
 }
 
-template <typename T, typename P>
-void print_lines_prefixed(T begin, T end, P &prefix) {
-  for (; begin != end; ++begin) {
-    std::cout << prefix();
-    print_line(*begin);
-    std::cout << std::endl;
+std::size_t indentation(const std::string &s) {
+  std::size_t i = 0;
+  for (const auto c : s) {
+    if (std::isspace(c))
+      ++i;
+    else
+      break;
   }
+  return i;
+}
+
+std::size_t largest_common_indentation(LinesIter beg, LinesIter end) {
+  assert(beg != end);
+  std::size_t lci = std::numeric_limits<std::size_t>::max();
+  for (; beg != end; ++beg) {
+    lci = std::min(lci, indentation(*beg));
+  }
+  return lci;
+}
+
+std::size_t print_line(const std::string &s, std::size_t start = 0,
+                       std::size_t maximum = MAX_LINE) {
+  constexpr const char *elips = "...";
+  assert(maximum >= std::strlen(elips));
+  if (start >= s.length())
+    return 0;
+  const bool too_long = s.length() - start > maximum;
+  const std::size_t end = too_long ? maximum - std::strlen(elips) + start : s.length();
+  // TODO: handle the case of multi-byte characters
+
+  for (std::size_t i = start; i < end; ++i) {
+    if (std::isspace(s[i]))
+      std::cout << ' ';
+    else
+      std::cout << s[i];
+  }
+
+  if (too_long)
+    std::cout << "...";
+
+  return end - start + (too_long ? std::strlen(elips) : 0);
 }
 
 template <typename P>
-void print_lines_in_string_prefixed(const std::string &str, P &prefix) {
-  if (str.empty())
+void print_lines_prefixed(LinesIter begin, LinesIter end, P &prefix) {
+  if (begin == end)
     return;
 
-  // TODO: limit length of lines?
-  std::cout << prefix();
-  for (auto begin = str.cbegin(); begin != str.cend(); ++begin) {
-    if (*begin == '\n' && begin + 1 != str.cend()) {
-      std::cout << *begin << prefix();
-    } else {
-      std::cout << *begin;
-    }
+  const std::size_t lci = largest_common_indentation(begin, end);
+  for (; begin != end; ++begin) {
+    std::cout << prefix();
+    print_line(*begin, lci);
+    std::cout << std::endl;
   }
-  std::cout << std::endl;
 }
 
 auto prefixer(bool use_arrow = false) {
@@ -70,7 +108,6 @@ auto prefixer(bool use_arrow = false) {
   };
 }
 
-// TODO: remove indentation from the lines printed directly from the file
 void print_code(const FileContents &contents, CachedFileReader &reader, bool is_subresult = false) {
   if (contents.is_empty())
     return;
@@ -113,13 +150,16 @@ void print_code(const FileContents &contents, CachedFileReader &reader, bool is_
                    if (iter.first == iter.second)
                      return;
                    const auto &line = *iter.first;
+                   const std::size_t ind = indentation(line);
                    std::cout << prefix();
-                   std::size_t printed_len = print_line(line);
+                   std::size_t printed_len = print_line(line, ind);
                    std::cout << std::endl;
                    std::cout << prefix() << (is_subresult ? rang::fgB::cyan : rang::fgB::yellow)
                              << rang::style::bold;
-                   print_marker(olm.startcol,
-                                olm.endcol.value_or(static_cast<unsigned int>(printed_len)));
+                   const unsigned int start_col = olm.startcol - ind;
+                   const unsigned int end_col = olm.endcol ? olm.endcol.value() - ind
+                                                           : static_cast<unsigned int>(printed_len);
+                   print_marker(start_col, end_col);
                    std::cout << rang::style::reset << std::endl;
                  },
              },
@@ -181,7 +221,8 @@ void print_one_result(const LintResult &r, CachedFileReader &reader) {
   if (r.rewrite) {
     std::cout << "rewrite as: " << std::endl;
     auto prefix = prefixer();
-    print_lines_in_string_prefixed(r.rewrite.value(), prefix);
+    auto lines = split_lines(r.rewrite.value());
+    print_lines_prefixed(lines.cbegin(), lines.cend(), prefix);
   }
   print_subresults(r, reader);
 }
