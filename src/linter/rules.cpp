@@ -34,8 +34,11 @@ std::ostream &operator<<(std::ostream &os, const LintResult &value) {
 }
 
 FileContents::OneLineMarked::OneLineMarked(unsigned int line, unsigned int startcol,
-                                           unsigned int endcol) noexcept
-    : line(line), startcol(startcol), endcol(endcol) {}
+                                           unsigned int endcolumn) noexcept
+    : line(line), startcol(startcol) {
+  if (endcolumn >= startcol)
+    endcol = endcolumn;
+}
 
 FileContents::OneLineMarked::OneLineMarked(unsigned int line, unsigned int startcol) noexcept
     : line(line), startcol(startcol) {}

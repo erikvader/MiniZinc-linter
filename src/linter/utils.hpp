@@ -139,8 +139,8 @@ location_between(const MiniZinc::Location &left, const MiniZinc::Location &right
     return std::nullopt;
   auto ll = left.lastLine();
   auto rl = right.firstLine();
-  auto lc = left.lastColumn() + 1;
-  auto rc = right.firstColumn() - 1;
+  auto lc = left.lastColumn();
+  auto rc = right.firstColumn();
   if (ll > rl)
     return std::nullopt;
   if (ll == rl && lc > rc)
