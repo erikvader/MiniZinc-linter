@@ -431,8 +431,13 @@ bool filter_arrayaccess_idx(const MiniZinc::Expression *root, const MiniZinc::Ex
                      [child](const MiniZinc::Expression *i) { return i == child; });
 }
 
-bool filter_comprehension_expr(const MiniZinc::Expression *root,
+bool filter_comprehension_body(const MiniZinc::Expression *root,
                                const MiniZinc::Expression *child) {
   return root->cast<MiniZinc::Comprehension>()->e() == child;
+}
+
+bool filter_global_comprehension_body(const MiniZinc::Expression *root,
+                                      const MiniZinc::Expression *child) {
+  return !root->isa<MiniZinc::Comprehension>() || filter_comprehension_body(root, child);
 }
 } // namespace LZN

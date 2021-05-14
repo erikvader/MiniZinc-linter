@@ -82,7 +82,8 @@ const LintEnv::ECMap &LintEnv::equal_constrained() {
   return lazy_value(_equal_constrained, [this]() {
     const auto s = get_builder()
                        .global_filter(filter_out_annotations)
-                       .direct(MiniZinc::BinOpType::BOT_EQ)
+                       .global_filter(filter_global_comprehension_body)
+                       .under(MiniZinc::BinOpType::BOT_EQ)
                        .capture()
                        .direct(MiniZinc::Expression::E_ID)
                        .build();
@@ -92,6 +93,13 @@ const LintEnv::ECMap &LintEnv::equal_constrained() {
       auto ms = s.search(con);
 
       while (ms.next()) {
+        auto [pathbegin, pathend] = ms.current_path();
+        assert(pathbegin != pathend);
+        ++pathbegin;
+        ++pathbegin;
+        if (!is_conjunctive(pathbegin, pathend))
+          continue;
+
         auto eq = ms.capture(0)->cast<MiniZinc::BinOp>();
         MiniZinc::Id *left;
         if ((left = eq->lhs()->dynamicCast<MiniZinc::Id>()) != nullptr) {
@@ -145,12 +153,12 @@ const LintEnv::AECMap &LintEnv::array_equal_constrained() {
 
     {
       const auto s = get_builder()
-                         .direct(MiniZinc::Expression::E_CALL)
+                         .global_filter(filter_global_comprehension_body)
+                         .under(MiniZinc::Expression::E_CALL)
                          .capture()
                          .direct(MiniZinc::Expression::E_COMP)
                          .capture()
-                         .filter(filter_comprehension_expr)
-                         .direct(MiniZinc::BinOpType::BOT_EQ)
+                         .direct(MiniZinc::BinOpType::BOT_EQ) // TODO: shouldn't need to be direct
                          .capture()
                          .direct(MiniZinc::Expression::E_ARRAYACCESS)
                          .capture()
@@ -182,7 +190,8 @@ const LintEnv::AECMap &LintEnv::array_equal_constrained() {
 
     {
       const auto s = get_builder()
-                         .direct(MiniZinc::BinOpType::BOT_EQ)
+                         .global_filter(filter_global_comprehension_body)
+                         .under(MiniZinc::BinOpType::BOT_EQ)
                          .capture()
                          .direct(MiniZinc::Expression::E_ARRAYACCESS)
                          .capture()

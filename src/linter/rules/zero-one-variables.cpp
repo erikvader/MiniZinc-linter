@@ -39,7 +39,7 @@ private:
                        .capture()
                        .direct(ExpressionId::E_COMP)
                        .capture()
-                       .filter(filter_comprehension_expr)
+                       .filter(filter_comprehension_body)
                        .direct(ExpressionId::E_CALL)
                        .capture()
                        .direct(BT::BOT_EQ)

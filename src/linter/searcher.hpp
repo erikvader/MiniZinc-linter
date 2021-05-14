@@ -13,7 +13,9 @@ bool filter_out_annotations(const MiniZinc::Expression *root, const MiniZinc::Ex
 bool filter_out_vardecls(const MiniZinc::Expression *root, const MiniZinc::Expression *child);
 bool filter_arrayaccess_name(const MiniZinc::Expression *root, const MiniZinc::Expression *child);
 bool filter_arrayaccess_idx(const MiniZinc::Expression *root, const MiniZinc::Expression *child);
-bool filter_comprehension_expr(const MiniZinc::Expression *root, const MiniZinc::Expression *child);
+bool filter_comprehension_body(const MiniZinc::Expression *root, const MiniZinc::Expression *child);
+bool filter_global_comprehension_body(const MiniZinc::Expression *root,
+                                      const MiniZinc::Expression *child);
 
 class Search;
 

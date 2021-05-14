@@ -32,7 +32,7 @@ TEST_CASE("operators on var", "[rule]") {
     LZN_MODEL("var int: b;\n"
               "var int: a;\n"
               "constraint (a = 1) \\/ (b = 1);");
-    LZN_EXPECTED(LZN_ONELINE(3, 18, 23));
+    LZN_EXPECTED(LZN_ONELINE(3, 17, 24));
   }
 
   SECTION("divide par") {

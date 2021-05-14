@@ -24,7 +24,9 @@ private:
         auto &loc = vd->loc();
         auto &res = env.emplace_result(FileContents::Type::OneLineMarked, loc, this,
                                        "is only assigned to par values, shouldn't be var");
-        res.emplace_subresult("assigned here", FileContents::Type::OneLineMarked, rhs->loc());
+        const auto &rhs_loc = rhs->loc();
+        if (!rhs_loc.isIntroduced())
+          res.emplace_subresult("assigned here", FileContents::Type::OneLineMarked, rhs_loc);
 
       } else if (rhs == nullptr && vd->ti()->isarray() && env.is_every_index_touched(vd)) {
         std::vector<const MiniZinc::Location *> sub_locations;

@@ -29,6 +29,12 @@ TEST_CASE("variable assigned to par", "[rule]") {
     LZN_EXPECTED(LZN_ONELINE(1, 1, 10));
   }
 
+  SECTION("one variable constrained to par in conjunction") {
+    LZN_MODEL("var int: x;\n"
+              "constraint x = 2 /\\ true;");
+    LZN_EXPECTED(LZN_ONELINE(1, 1, 10));
+  }
+
   SECTION("one variable constrained to par nested") {
     LZN_MODEL("var int: x;\n"
               "constraint if 1 = 1 then x = 2 endif;");

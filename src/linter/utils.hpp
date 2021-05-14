@@ -148,18 +148,38 @@ location_between(const MiniZinc::Location &left, const MiniZinc::Location &right
   return std::make_tuple(ll, lc, rl, rc);
 }
 
-// Returns true of the current item in searcher is certainly not reified.
+// Returns true if the path is certainly not reified.
 // Returns false if not sure.
 template <typename T>
-inline bool is_not_reified(const T &searcher) {
-  auto [b, e] = searcher.current_path();
-  assert(b != e);
-  b++;
+inline bool is_not_reified(T b, T e) {
   return std::all_of(b, e, [](const MiniZinc::Expression *e) {
     if (auto bo = e->dynamicCast<MiniZinc::BinOp>(); bo != nullptr) {
       return bo->op() == MiniZinc::BinOpType::BOT_AND;
     }
     return false;
   });
+}
+
+// Returns true if the path is conjunctive, i.e. consists of /\ and forall([..|..]).
+// Assumes that only the bodies of comprehensions are on the path.
+template <typename T>
+inline bool is_conjunctive(T b, T e) {
+  bool last_comp = false;
+  return std::all_of(b, e,
+                     [&last_comp](const MiniZinc::Expression *e) {
+                       if (last_comp) {
+                         last_comp = false;
+                         auto call = e->dynamicCast<MiniZinc::Call>();
+                         return call != nullptr && call->id() == MiniZinc::constants().ids.forall;
+                       } else if (auto bo = e->dynamicCast<MiniZinc::BinOp>(); bo != nullptr) {
+                         return bo->op() == MiniZinc::BinOpType::BOT_AND;
+                       } else if (auto comp = e->dynamicCast<MiniZinc::Comprehension>();
+                                  comp != nullptr) {
+                         last_comp = true;
+                         return true;
+                       }
+                       return false;
+                     }) &&
+         !last_comp;
 }
 } // namespace LZN

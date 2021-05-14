@@ -26,9 +26,13 @@ private:
           continue;
 
         auto decl_path = decl->loc().filename();
+        auto [pathbegin, pathend] = ms.current_path();
+        assert(pathbegin != pathend);
+        ++pathbegin;
+
         if (s.include_path() != nullptr && decl_path.size() > 0 &&
             path_included_from(*s.include_path(), decl_path) && decl->ti()->type().isvarbool() &&
-            !decl->fromStdLib() && !is_not_reified(ms)) {
+            !decl->fromStdLib() && !is_not_reified(pathbegin, pathend)) {
           const auto &loc = call->loc();
           env.emplace_result(FileContents::Type::OneLineMarked, loc, this,
                              "reified global constraint");
