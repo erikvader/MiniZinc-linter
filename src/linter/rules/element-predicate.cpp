@@ -13,7 +13,8 @@ private:
   using BT = MiniZinc::BinOpType;
 
   virtual void do_run(LintEnv &env) const override {
-    const auto s = env.get_builder().in_everywhere().under(ExpressionId::E_CALL).capture().build();
+    const auto s =
+        env.userdef_only_builder().in_everywhere().under(ExpressionId::E_CALL).capture().build();
     auto ms = s.search(env.model());
 
     while (ms.next()) {

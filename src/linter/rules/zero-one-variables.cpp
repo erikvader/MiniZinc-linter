@@ -19,7 +19,7 @@ private:
   };
 
   virtual void do_run(LintEnv &env) const override {
-    const Searchers searchers{env.get_builder()
+    const Searchers searchers{env.userdef_only_builder()
                                   .global_filter(filter_out_annotations)
                                   .under(ExpressionId::E_ARRAYACCESS)
                                   .filter(filter_arrayaccess_idx)
@@ -33,7 +33,7 @@ private:
   }
 
   void case_sum(LintEnv &env, const Searchers &searchers) const {
-    const auto s = env.get_builder()
+    const auto s = env.userdef_only_builder()
                        .in_everywhere()
                        .under(ExpressionId::E_CALL)
                        .capture()
@@ -94,7 +94,7 @@ private:
 
   void case_impl(LintEnv &env, const Searchers &searchers, BT rewrite_type,
                  MiniZinc::IntVal equal_to) const {
-    const auto main_searcher = env.get_builder()
+    const auto main_searcher = env.userdef_only_builder()
                                    .in_everywhere()
                                    .under(BT::BOT_IMPL)
                                    .capture()
@@ -107,7 +107,7 @@ private:
                                    .capture()
                                    .build();
 
-    const auto off_searcher = env.get_builder()
+    const auto off_searcher = env.userdef_only_builder()
                                   .direct(BT::BOT_EQ)
                                   .capture()
                                   .direct(ExpressionId::E_INTLIT)

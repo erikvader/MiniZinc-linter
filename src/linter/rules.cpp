@@ -80,7 +80,7 @@ void LintEnv::add_result(LintResult lr) {
 
 const LintEnv::ECMap &LintEnv::equal_constrained() {
   return lazy_value(_equal_constrained, [this]() {
-    const auto s = get_builder()
+    const auto s = userdef_only_builder()
                        .global_filter(filter_out_annotations)
                        .global_filter(filter_global_comprehension_body)
                        .under(MiniZinc::BinOpType::BOT_EQ)
@@ -120,7 +120,7 @@ const LintEnv::ECMap &LintEnv::equal_constrained() {
 const LintEnv::VDVec &LintEnv::user_defined_variable_declarations() {
   using ExpressionId = MiniZinc::Expression::ExpressionId;
   return lazy_value(_vardecls, [this, model = _model]() {
-    const auto s = get_builder()
+    const auto s = userdef_only_builder()
                        .in_vardecl()
                        .in_assign_rhs()
                        .in_constraint()
@@ -152,7 +152,7 @@ const LintEnv::AECMap &LintEnv::array_equal_constrained() {
     LintEnv::AECMap map;
 
     {
-      const auto s = get_builder()
+      const auto s = userdef_only_builder()
                          .global_filter(filter_global_comprehension_body)
                          .under(MiniZinc::Expression::E_CALL)
                          .capture()
@@ -189,7 +189,7 @@ const LintEnv::AECMap &LintEnv::array_equal_constrained() {
     }
 
     {
-      const auto s = get_builder()
+      const auto s = userdef_only_builder()
                          .global_filter(filter_global_comprehension_body)
                          .under(MiniZinc::BinOpType::BOT_EQ)
                          .capture()
@@ -221,7 +221,7 @@ const LintEnv::AECMap &LintEnv::array_equal_constrained() {
 
 const LintEnv::UDFVec &LintEnv::user_defined_functions() {
   return lazy_value(_user_defined_funcs, [this, model = _model]() {
-    const auto s = get_builder().in_function().build();
+    const auto s = userdef_only_builder().in_function().build();
     auto ms = s.search(model);
     LintEnv::UDFVec vec;
     while (ms.next()) {
@@ -239,7 +239,7 @@ const LintEnv::UDFVec &LintEnv::user_defined_functions() {
 
 const MiniZinc::SolveI *LintEnv::solve_item() {
   return lazy_value(_solve_item, [this, model = _model]() -> const MiniZinc::SolveI * {
-    const auto s = get_builder().in_solve().build();
+    const auto s = userdef_only_builder().in_solve().build();
     auto ms = s.search(model);
     while (ms.next()) {
       return ms.cur_item()->cast<MiniZinc::SolveI>();
@@ -253,7 +253,7 @@ const LintEnv::ExprVec &LintEnv::constraints() {
     LintEnv::ExprVec vec;
 
     { // constraints in let
-      const auto s = get_builder()
+      const auto s = userdef_only_builder()
                          .in_vardecl()
                          .in_assign_rhs()
                          .in_function_body()
@@ -274,7 +274,7 @@ const LintEnv::ExprVec &LintEnv::constraints() {
     }
 
     {
-      const auto s = get_builder().in_constraint().build();
+      const auto s = userdef_only_builder().in_constraint().build();
       auto ms = s.search(model);
       while (ms.next()) {
         auto con = ms.cur_item()->cast<MiniZinc::ConstraintI>();
@@ -317,7 +317,7 @@ bool LintEnv::is_every_index_touched(const MiniZinc::VarDecl *arraydecl) {
   return false;
 }
 
-SearchBuilder LintEnv::get_builder() const {
+SearchBuilder LintEnv::userdef_only_builder() const {
   return SearchBuilder().only_user_defined(_includePath).recursive();
 }
 

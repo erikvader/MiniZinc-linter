@@ -75,8 +75,8 @@ public:
   // is every index in the array touched from constraints?
   bool is_every_index_touched(const MiniZinc::VarDecl *);
 
-  // return a builder that only searches for mostly user defined things
-  SearchBuilder get_builder() const;
+  // return a builder that filters out everything (functions and includes) that is not user defined.
+  SearchBuilder userdef_only_builder() const;
   MiniZinc::Env &minizinc_env() { return _env; }
 };
 

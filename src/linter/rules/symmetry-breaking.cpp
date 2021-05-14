@@ -27,7 +27,7 @@ private:
   };
 
   virtual void do_run(LintEnv &env) const override {
-    const auto s = env.get_builder().direct(ExpressionId::E_CALL).capture().build();
+    const auto s = env.userdef_only_builder().direct(ExpressionId::E_CALL).capture().build();
     for (auto con : env.constraints()) {
       auto ms = s.search(con);
       if (!ms.next())

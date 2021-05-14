@@ -217,6 +217,8 @@ public:
 
   SearchBuilder() = default;
 
+  // ModelSearcher gains the ability to ignore some introduced functions and ignore recursing into
+  // included stdlib files. ExprSearcher unaffected.
   SearchBuilder &only_user_defined(const std::vector<std::string> &standard_lib_include_path) {
     includePath = &standard_lib_include_path;
     return *this;

@@ -20,7 +20,8 @@ private:
   }
 
   void find_binop(LintEnv &env) const {
-    const auto s = env.get_builder().in_everywhere().under(ExpressionId::E_BINOP).capture().build();
+    const auto s =
+        env.userdef_only_builder().in_everywhere().under(ExpressionId::E_BINOP).capture().build();
     auto ms = s.search(env.model());
 
     while (ms.next()) {
@@ -58,7 +59,7 @@ private:
   }
 
   void find_unop(LintEnv &env) const {
-    const auto s = env.get_builder().in_everywhere().under(UT::UOT_NOT).capture().build();
+    const auto s = env.userdef_only_builder().in_everywhere().under(UT::UOT_NOT).capture().build();
     auto ms = s.search(env.model());
 
     while (ms.next()) {

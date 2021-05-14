@@ -11,8 +11,11 @@ public:
 
 private:
   virtual void do_run(LintEnv &env) const override {
-    const auto s =
-        env.get_builder().in_everywhere().under(MiniZinc::Expression::E_COMP).capture().build();
+    const auto s = env.userdef_only_builder()
+                       .in_everywhere()
+                       .under(MiniZinc::Expression::E_COMP)
+                       .capture()
+                       .build();
     auto ms = s.search(env.model());
 
     while (ms.next()) {

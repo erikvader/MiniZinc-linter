@@ -12,7 +12,7 @@ private:
   using ExpressionId = MiniZinc::Expression::ExpressionId;
 
   virtual void do_run(LintEnv &env) const override {
-    const auto s = env.get_builder().under(ExpressionId::E_ID).capture().build();
+    const auto s = env.userdef_only_builder().under(ExpressionId::E_ID).capture().build();
 
     for (auto fun : env.user_defined_functions()) {
       auto ms = s.search(fun->e());

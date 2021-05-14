@@ -138,7 +138,7 @@ private:
   VarGraph find_containment(LintEnv &env) const {
     VarGraph g;
     const auto decl_searcher =
-        env.get_builder().under(MiniZinc::Expression::E_VARDECL).capture().build();
+        env.userdef_only_builder().under(MiniZinc::Expression::E_VARDECL).capture().build();
 
     for (auto fi : env.user_defined_functions()) {
       find_vardecls(fi, fi->e(), g, decl_searcher);
@@ -184,11 +184,15 @@ private:
   }
 
   static Search collect_dependans_searcher(LintEnv &env, EID search_for) {
-    return env.get_builder().global_filter(filter_out_vardecls).under(search_for).capture().build();
+    return env.userdef_only_builder()
+        .global_filter(filter_out_vardecls)
+        .under(search_for)
+        .capture()
+        .build();
   }
 
   static Search find_uses_searcher(LintEnv &env, EID search_for) {
-    return env.get_builder()
+    return env.userdef_only_builder()
         .global_filter(filter_out_vardecls)
         .in_solve()
         .in_constraint()
