@@ -1,6 +1,7 @@
 #include <linter/registry.hpp>
 #include <linter/rules.hpp>
 
+// TODO: depos_placement. iterera över en lista
 namespace {
 using namespace LZN;
 

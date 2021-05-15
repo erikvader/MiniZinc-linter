@@ -2,6 +2,7 @@
 #include <linter/rules.hpp>
 #include <linter/utils.hpp>
 
+// TODO: multiplication?
 namespace {
 using namespace LZN;
 

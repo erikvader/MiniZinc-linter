@@ -8,6 +8,7 @@
 int main(int argc, const char *argv[]) {
   std::vector<std::string> filenames;
   if (argc > 1) {
+    // TODO: normalize
     filenames.push_back(argv[1]);
   } else {
     std::cerr << "no file" << std::endl;

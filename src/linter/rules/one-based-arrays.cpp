@@ -6,6 +6,8 @@
 namespace {
 using namespace LZN;
 
+// TODO: look for array[int] of int: arr, i.e. par arrays with no range, and exclude them.
+// The same but with var arrays assigned to something should also be fine.
 class OneBasedArrays : public LintRule {
 public:
   constexpr OneBasedArrays() : LintRule(19, "one-based-arrays") {}
