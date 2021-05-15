@@ -1,5 +1,4 @@
 #include "utils.hpp"
-#include <linter/searcher.hpp>
 
 namespace LZN {
 

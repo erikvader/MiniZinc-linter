@@ -34,6 +34,9 @@ class LintEnv {
     const MiniZinc::ArrayAccess *arrayaccess;
     const MiniZinc::Expression *rhs;
     const MiniZinc::Comprehension *comp;
+    AECValue(const MiniZinc::ArrayAccess *arrayaccess, const MiniZinc::Expression *rhs,
+             const MiniZinc::Comprehension *comp)
+        : arrayaccess(arrayaccess), rhs(rhs), comp(comp) {}
   };
   using AECMap = std::unordered_multimap<const MiniZinc::VarDecl *, AECValue>;
   std::optional<AECMap> _array_equal_constrained;
@@ -73,7 +76,7 @@ public:
 
   const MiniZinc::Expression *get_equal_constrained_rhs(const MiniZinc::VarDecl *);
   // is every index in the array touched from constraints?
-  bool is_every_index_touched(const MiniZinc::VarDecl *);
+  bool is_every_index_touched(const MiniZinc::VarDecl *); // TODO: move to utils?
 
   // return a builder that filters out everything (functions and includes) that is not user defined.
   SearchBuilder userdef_only_builder() const;

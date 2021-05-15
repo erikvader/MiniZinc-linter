@@ -1,5 +1,6 @@
 #pragma once
 #include <algorithm>
+#include <linter/searcher.hpp>
 #include <minizinc/ast.hh>
 #include <minizinc/eval_par.hh>
 
@@ -101,5 +102,79 @@ bool is_conjunctive(T b, T e) {
                        return false;
                      }) &&
          !last_comp;
+}
+
+inline const Search EQUAL_CONSTRAINED_VARIABLES =
+    SearchBuilder()
+        .global_filter(filter_out_annotations)
+        .global_filter(filter_global_comprehension_body)
+        .under(MiniZinc::BinOpType::BOT_EQ)
+        .capture()
+        .direct(MiniZinc::Expression::E_ID)
+        .capture()
+        .build();
+
+template <typename T>
+void equal_constrained_variables(const MiniZinc::Expression *e, T inserter) {
+  auto ms = EQUAL_CONSTRAINED_VARIABLES.search(e);
+
+  while (ms.next()) {
+    auto [pathbegin, pathend] = ms.current_path();
+    for (int i = 0; i < 2; ++i) {
+      assert(pathbegin != pathend);
+      ++pathbegin;
+    }
+    if (!is_conjunctive(pathbegin, pathend))
+      continue;
+
+    auto eq = ms.capture(0)->cast<MiniZinc::BinOp>();
+    auto id = ms.capture(1)->cast<MiniZinc::Id>();
+    std::invoke(inserter, eq, id);
+  }
+}
+
+inline const Search EQUAL_CONSTRAINED_ACCESS // force clang-format to break here
+    = SearchBuilder()
+          .global_filter(filter_global_comprehension_body)
+          .under(MiniZinc::BinOpType::BOT_EQ)
+          .capture()
+          .direct(MiniZinc::Expression::E_ARRAYACCESS)
+          .capture()
+          .filter(filter_arrayaccess_name)
+          .direct(MiniZinc::Expression::E_ID)
+          .capture()
+          .build();
+
+template <typename T>
+void equal_constrained_access(const MiniZinc::Expression *e, T inserter) {
+  auto ms = EQUAL_CONSTRAINED_ACCESS.search(e);
+
+  while (ms.next()) {
+    auto [pathbegin, pathend] = ms.current_path();
+    for (int i = 0; i < 3; ++i) {
+      assert(pathbegin != pathend);
+      ++pathbegin;
+    }
+    if (!is_conjunctive(pathbegin, pathend))
+      continue;
+
+    const MiniZinc::Comprehension *comp = nullptr;
+    for (int i = 0; i < 2 && pathbegin != pathend; ++pathbegin, ++i) {
+      if (i == 0) {
+        comp = (*pathbegin)->dynamicCast<MiniZinc::Comprehension>();
+      } else {
+        auto call = (*pathbegin)->dynamicCast<MiniZinc::Call>();
+        if (call == nullptr || call->id() != MiniZinc::constants().ids.forall) {
+          comp = nullptr;
+        }
+      }
+    }
+
+    const auto eq = ms.capture_cast<MiniZinc::BinOp>(0);
+    const auto access = ms.capture_cast<MiniZinc::ArrayAccess>(1);
+    const auto id = ms.capture_cast<MiniZinc::Id>(2);
+    const MiniZinc::Expression *rhs = other_side(eq, access);
+    std::invoke(inserter, eq, access, id, rhs, comp);
+  }
 }
 } // namespace LZN

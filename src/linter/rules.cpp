@@ -80,38 +80,13 @@ void LintEnv::add_result(LintResult lr) {
 
 const LintEnv::ECMap &LintEnv::equal_constrained() {
   return lazy_value(_equal_constrained, [this]() {
-    const auto s = userdef_only_builder()
-                       .global_filter(filter_out_annotations)
-                       .global_filter(filter_global_comprehension_body)
-                       .under(MiniZinc::BinOpType::BOT_EQ)
-                       .capture()
-                       .direct(MiniZinc::Expression::E_ID)
-                       .build();
-
     LintEnv::ECMap ids;
     for (auto con : constraints()) {
-      auto ms = s.search(con);
-
-      while (ms.next()) {
-        auto [pathbegin, pathend] = ms.current_path();
-        assert(pathbegin != pathend);
-        ++pathbegin;
-        ++pathbegin;
-        if (!is_conjunctive(pathbegin, pathend))
-          continue;
-
-        auto eq = ms.capture(0)->cast<MiniZinc::BinOp>();
-        MiniZinc::Id *left;
-        if ((left = eq->lhs()->dynamicCast<MiniZinc::Id>()) != nullptr) {
-          assert(left->decl() != nullptr);
-          ids.emplace(left->decl(), eq->rhs());
-        }
-        MiniZinc::Id *right;
-        if ((right = eq->rhs()->dynamicCast<MiniZinc::Id>()) != nullptr) {
-          assert(right->decl() != nullptr);
-          ids.emplace(right->decl(), eq->lhs());
-        }
-      }
+      equal_constrained_variables(con, [&ids](const MiniZinc::BinOp *eq, const MiniZinc::Id *id) {
+        auto other = other_side(eq, id);
+        assert(id->decl() != nullptr);
+        ids.emplace(id->decl(), other);
+      });
     }
     return ids;
   });
@@ -151,69 +126,80 @@ const LintEnv::AECMap &LintEnv::array_equal_constrained() {
   return lazy_value(_array_equal_constrained, [this]() {
     LintEnv::AECMap map;
 
-    {
-      const auto s = userdef_only_builder()
-                         .global_filter(filter_global_comprehension_body)
-                         .under(MiniZinc::Expression::E_CALL)
-                         .capture()
-                         .direct(MiniZinc::Expression::E_COMP)
-                         .capture()
-                         .direct(MiniZinc::BinOpType::BOT_EQ) // TODO: shouldn't need to be direct
-                         .capture()
-                         .direct(MiniZinc::Expression::E_ARRAYACCESS)
-                         .capture()
-                         .filter(filter_arrayaccess_name)
-                         .direct(MiniZinc::Expression::E_ID)
-                         .capture()
-                         .build();
-
-      for (auto con : constraints()) {
-        auto forallsearcher = s.search(con);
-
-        while (forallsearcher.next()) {
-          const auto forall = forallsearcher.capture_cast<MiniZinc::Call>(0);
-          if (forall->id() != MiniZinc::constants().ids.forall)
-            continue;
-
-          const auto comp = forallsearcher.capture_cast<MiniZinc::Comprehension>(1);
-          const auto eq = forallsearcher.capture_cast<MiniZinc::BinOp>(2);
-          const auto access = forallsearcher.capture_cast<MiniZinc::ArrayAccess>(3);
-          const auto decl = forallsearcher.capture_cast<MiniZinc::Id>(4)->decl();
-          assert(decl != nullptr);
-          const MiniZinc::Expression *rhs = other_side(eq, access);
-          assert(rhs != nullptr);
-
-          map.emplace(decl, AECValue{access, rhs, comp});
-        }
-      }
+    for (auto con : constraints()) {
+      equal_constrained_access(con, [&map](const MiniZinc::BinOp * /*eq*/,
+                                           const MiniZinc::ArrayAccess *access,
+                                           const MiniZinc::Id *id, const MiniZinc::Expression *rhs,
+                                           const MiniZinc::Comprehension *comp) {
+        auto decl = id->decl();
+        assert(decl != nullptr);
+        map.emplace(std::piecewise_construct, std::forward_as_tuple(decl),
+                    std::forward_as_tuple(access, rhs, comp));
+      });
     }
 
-    {
-      const auto s = userdef_only_builder()
-                         .global_filter(filter_global_comprehension_body)
-                         .under(MiniZinc::BinOpType::BOT_EQ)
-                         .capture()
-                         .direct(MiniZinc::Expression::E_ARRAYACCESS)
-                         .capture()
-                         .filter(filter_arrayaccess_name)
-                         .direct(MiniZinc::Expression::E_ID)
-                         .capture()
-                         .build();
+    // {
+    //   const auto s = userdef_only_builder()
+    //                      .global_filter(filter_global_comprehension_body)
+    //                      .under(MiniZinc::Expression::E_CALL)
+    //                      .capture()
+    //                      .direct(MiniZinc::Expression::E_COMP)
+    //                      .capture()
+    //                      .direct(MiniZinc::BinOpType::BOT_EQ) // TODO: shouldn't need to be
+    //                      direct .capture() .direct(MiniZinc::Expression::E_ARRAYACCESS)
+    //                      .capture()
+    //                      .filter(filter_arrayaccess_name)
+    //                      .direct(MiniZinc::Expression::E_ID)
+    //                      .capture()
+    //                      .build();
 
-      for (auto con : constraints()) {
-        auto individualsearcher = s.search(con);
+    //   for (auto con : constraints()) {
+    //     auto forallsearcher = s.search(con);
 
-        while (individualsearcher.next()) {
-          const auto eq = individualsearcher.capture_cast<MiniZinc::BinOp>(0);
-          const auto access = individualsearcher.capture_cast<MiniZinc::ArrayAccess>(1);
-          const auto decl = individualsearcher.capture_cast<MiniZinc::Id>(2)->decl();
-          const MiniZinc::Expression *rhs = other_side(eq, access);
-          assert(decl != nullptr);
-          assert(rhs != nullptr);
-          map.emplace(decl, AECValue{access, rhs, nullptr});
-        }
-      }
-    }
+    //     while (forallsearcher.next()) {
+    //       const auto forall = forallsearcher.capture_cast<MiniZinc::Call>(0);
+    //       if (forall->id() != MiniZinc::constants().ids.forall)
+    //         continue;
+
+    //       const auto comp = forallsearcher.capture_cast<MiniZinc::Comprehension>(1);
+    //       const auto eq = forallsearcher.capture_cast<MiniZinc::BinOp>(2);
+    //       const auto access = forallsearcher.capture_cast<MiniZinc::ArrayAccess>(3);
+    //       const auto decl = forallsearcher.capture_cast<MiniZinc::Id>(4)->decl();
+    //       assert(decl != nullptr);
+    //       const MiniZinc::Expression *rhs = other_side(eq, access);
+    //       assert(rhs != nullptr);
+
+    //       map.emplace(decl, AECValue{access, rhs, comp});
+    //     }
+    //   }
+    // }
+
+    // {
+    //   const auto s = userdef_only_builder()
+    //                      .global_filter(filter_global_comprehension_body)
+    //                      .under(MiniZinc::BinOpType::BOT_EQ)
+    //                      .capture()
+    //                      .direct(MiniZinc::Expression::E_ARRAYACCESS)
+    //                      .capture()
+    //                      .filter(filter_arrayaccess_name)
+    //                      .direct(MiniZinc::Expression::E_ID)
+    //                      .capture()
+    //                      .build();
+
+    //   for (auto con : constraints()) {
+    //     auto individualsearcher = s.search(con);
+
+    //     while (individualsearcher.next()) {
+    //       const auto eq = individualsearcher.capture_cast<MiniZinc::BinOp>(0);
+    //       const auto access = individualsearcher.capture_cast<MiniZinc::ArrayAccess>(1);
+    //       const auto decl = individualsearcher.capture_cast<MiniZinc::Id>(2)->decl();
+    //       const MiniZinc::Expression *rhs = other_side(eq, access);
+    //       assert(decl != nullptr);
+    //       assert(rhs != nullptr);
+    //       map.emplace(decl, AECValue{access, rhs, nullptr});
+    //     }
+    //   }
+    // }
 
     return map;
   });
