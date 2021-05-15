@@ -76,22 +76,25 @@ bool is_not_reified(T b, T e) {
   });
 }
 
-// Returns true if the path is conjunctive, i.e. consists of /\ and forall([..|..]).
+// Returns true if the path is conjunctive, i.e. consists of /\, forall([..|..]) and let.
 // Assumes that only the bodies of comprehensions are on the path.
 template <typename T>
 bool is_conjunctive(T b, T e) {
   bool last_comp = false;
   return std::all_of(b, e,
-                     // TODO: allow let aswell
                      [&last_comp](const MiniZinc::Expression *e) {
                        if (last_comp) {
                          last_comp = false;
                          auto call = e->dynamicCast<MiniZinc::Call>();
                          return call != nullptr && call->id() == MiniZinc::constants().ids.forall;
-                       } else if (auto bo = e->dynamicCast<MiniZinc::BinOp>(); bo != nullptr) {
+                       }
+                       if (auto bo = e->dynamicCast<MiniZinc::BinOp>(); bo != nullptr) {
                          return bo->op() == MiniZinc::BinOpType::BOT_AND;
-                       } else if (auto comp = e->dynamicCast<MiniZinc::Comprehension>();
-                                  comp != nullptr) {
+                       }
+                       if (e->isa<MiniZinc::Let>()) {
+                         return true;
+                       }
+                       if (auto comp = e->dynamicCast<MiniZinc::Comprehension>(); comp != nullptr) {
                          last_comp = true;
                          return true;
                        }
