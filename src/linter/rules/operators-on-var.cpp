@@ -43,7 +43,10 @@ private:
           FileContents::Region region;
           if (oper_loc) {
             auto [fl, fc, ll, lc] = oper_loc.value();
-            region = FileContents::OneLineMarked(fl, fc, lc);
+            if (fl == ll)
+              region = FileContents::OneLineMarked(fl, fc, lc);
+            else
+              region = FileContents::OneLineMarked(fl, fc);
           } else {
             region = FileContents::OneLineMarked(loc);
           }
