@@ -12,4 +12,5 @@ target_sources(LinterLib PRIVATE
   globals-in-function.cpp
   global-constraint-reified.cpp
   operators-on-var.cpp
+  functionally-defined-search-hint.cpp
   )

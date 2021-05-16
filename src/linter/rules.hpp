@@ -52,6 +52,9 @@ class LintEnv {
   using ExprVec = std::vector<const MiniZinc::Expression *>;
   std::optional<ExprVec> _constraints;
 
+  using VDSet = std::unordered_set<const MiniZinc::VarDecl *>;
+  std::optional<VDSet> _search_hinted;
+
 public:
   LintEnv(const MiniZinc::Model *model, MiniZinc::Env &env,
           const std::vector<std::string> &includePath)
@@ -72,11 +75,15 @@ public:
   const AECMap &array_equal_constrained();
   const UDFVec &user_defined_functions();
   const MiniZinc::SolveI *solve_item();
-  const ExprVec &constraints();
+  const VDSet &search_hinted_variables();
+  const ExprVec &constraints(); // TODO: should the ones in let really be included?
 
+  // return what the variable is equal constrained to
   const MiniZinc::Expression *get_equal_constrained_rhs(const MiniZinc::VarDecl *);
   // is every index in the array touched from constraints?
-  bool is_every_index_touched(const MiniZinc::VarDecl *); // TODO: move to utils?
+  bool is_every_index_touched(const MiniZinc::VarDecl *);
+  // check whether a variable is mentioned in the search hint
+  bool is_search_hinted(const MiniZinc::VarDecl *);
 
   // return a builder that filters out everything (functions and includes) that is not user defined.
   SearchBuilder userdef_only_builder() const;

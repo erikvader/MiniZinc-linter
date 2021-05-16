@@ -77,8 +77,9 @@ bool is_not_reified(T b, T e) {
   });
 }
 
-// Returns true if the path is conjunctive, i.e. consists of /\, forall([..|..]) and let.
+// Returns true if the path is conjunctive, i.e. consists of /\, forall([..|..]), let and assert.
 // Assumes that only the bodies of comprehensions are on the path.
+// Assumes that the generators aren't no-ops.
 template <typename T>
 bool is_conjunctive(T b, T e) {
   bool last_comp = false;
@@ -94,6 +95,9 @@ bool is_conjunctive(T b, T e) {
                        }
                        if (e->isa<MiniZinc::Let>()) {
                          return true;
+                       }
+                       if (auto call = e->dynamicCast<MiniZinc::Call>(); call != nullptr) {
+                         return call->id() == MiniZinc::constants().ids.assert;
                        }
                        if (auto comp = e->dynamicCast<MiniZinc::Comprehension>(); comp != nullptr) {
                          last_comp = true;
@@ -114,8 +118,10 @@ inline const Search EQUAL_CONSTRAINED_VARIABLES =
         .capture()
         .build();
 
+// find all functionally defined variables in `e` of the form: var=..
 template <typename T>
 void equal_constrained_variables(const MiniZinc::Expression *e, T inserter) {
+  assert(e != nullptr);
   auto ms = EQUAL_CONSTRAINED_VARIABLES.search(e);
 
   while (ms.next()) {
@@ -145,8 +151,11 @@ inline const Search EQUAL_CONSTRAINED_ACCESS // force clang-format to break here
           .capture()
           .build();
 
+// find all a[..] = ..
+// and forall([..|a[..] = ..])
 template <typename T>
 void equal_constrained_access(const MiniZinc::Expression *e, T inserter) {
+  assert(e != nullptr);
   auto ms = EQUAL_CONSTRAINED_ACCESS.search(e);
 
   while (ms.next()) {

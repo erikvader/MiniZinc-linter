@@ -2,6 +2,7 @@
 #include <linter/file_utils.hpp>
 #include <linter/overload.hpp>
 #include <linter/utils.hpp>
+#include <minizinc/hash.hh>
 #include <minizinc/prettyprinter.hh>
 
 namespace {
@@ -224,6 +225,7 @@ const LintEnv::UDFVec &LintEnv::user_defined_functions() {
 }
 
 const MiniZinc::SolveI *LintEnv::solve_item() {
+  // TODO: why this instead of MiniZinc::Model::solveItem?
   return lazy_value(_solve_item, [this, model = _model]() -> const MiniZinc::SolveI * {
     const auto s = userdef_only_builder().in_solve().build();
     auto ms = s.search(model);
@@ -231,6 +233,28 @@ const MiniZinc::SolveI *LintEnv::solve_item() {
       return ms.cur_item()->cast<MiniZinc::SolveI>();
     }
     return nullptr;
+  });
+}
+
+const LintEnv::VDSet &LintEnv::search_hinted_variables() {
+  return lazy_value(_search_hinted, [this]() {
+    LintEnv::VDSet set;
+    auto solve = solve_item();
+    if (solve == nullptr || solve->ann().isEmpty())
+      return set;
+
+    const auto s = userdef_only_builder().under(MiniZinc::Expression::E_ID).capture().build();
+
+    for (const auto *e : solve->ann()) {
+      auto ms = s.search(e);
+      while (ms.next()) {
+        auto id = ms.capture_cast<MiniZinc::Id>(0);
+        if (id->decl() != nullptr)
+          set.insert(id->decl());
+      }
+    }
+
+    return set;
   });
 }
 
@@ -301,6 +325,10 @@ bool LintEnv::is_every_index_touched(const MiniZinc::VarDecl *arraydecl) {
       return true;
   }
   return false;
+}
+
+bool LintEnv::is_search_hinted(const MiniZinc::VarDecl *vd) {
+  return search_hinted_variables().count(vd) > 0;
 }
 
 SearchBuilder LintEnv::userdef_only_builder() const {
