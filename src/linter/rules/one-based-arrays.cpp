@@ -6,8 +6,6 @@
 namespace {
 using namespace LZN;
 
-// TODO: look for array[int] of int: arr, i.e. par arrays with no range, and exclude them.
-// The same but with var arrays assigned to something should also be fine.
 class OneBasedArrays : public LintRule {
 public:
   constexpr OneBasedArrays() : LintRule(19, "one-based-arrays") {}
@@ -15,7 +13,7 @@ public:
 private:
   using BT = MiniZinc::BinOpType;
 
-  bool starts_at_one(MiniZinc::TypeInst *ti) const {
+  bool starts_at_one(const MiniZinc::TypeInst *ti) const {
     auto followed = MiniZinc::follow_id(ti->domain());
     if (followed == nullptr)
       return false;
@@ -48,7 +46,7 @@ private:
         continue;
 
       for (auto r : vd->ti()->ranges()) {
-        if (!starts_at_one(r)) {
+        if (r->domain() != nullptr && !starts_at_one(r)) {
           const auto &loc = r->loc();
           auto &lr = env.emplace_result(FileContents::Type::OneLineMarked, loc, this,
                                         "better to start at 1");

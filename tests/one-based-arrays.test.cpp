@@ -59,5 +59,10 @@ TEST_CASE("one based arrays", "[rule]") {
     LZN_EXPECTED(LZN_ONELINE(1, 7, 10), LZN_ONELINE(1, 13, 16), LZN_ONELINE(1, 19, 22));
   }
 
+  SECTION("array with no explicit set") {
+    LZN_MODEL("array[int] of var int: xs;");
+    LZN_EXPECTED();
+  }
+
   LZN_TEST_CASE_END
 }
