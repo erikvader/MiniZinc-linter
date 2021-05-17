@@ -15,6 +15,7 @@ add_executable(Test
   zero-one-variables.test.cpp
   global-constraint-reified.test.cpp
   operators-on-var.test.cpp
+  functionally-defined-search-hint.test.cpp
   )
 target_link_libraries(Test PRIVATE LinterLib)
 

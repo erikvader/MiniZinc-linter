@@ -2,6 +2,7 @@
 
 #include <catch2/catch.hpp>
 #include <linter/registry.hpp>
+#include <minizinc/astexception.hh>
 #include <minizinc/parser.hh>
 #include <minizinc/typecheck.hh>
 #include <vector>
@@ -47,7 +48,9 @@ inline constexpr const char *const MODEL_FILENAME = "testmodel";
     errstream >> std::cerr.rdbuf();                                                                \
   assert(model != nullptr);                                                                        \
   std::vector<MiniZinc::TypeError> typeErrors;                                                     \
-  MiniZinc::typecheck(env, model, typeErrors, true, false);                                        \
+  try {                                                                                            \
+    MiniZinc::typecheck(env, model, typeErrors, true, false);                                      \
+  } catch (MiniZinc::TypeError & te) { FAIL("type error: " << te.msg()); }                         \
   LZN::LintEnv lenv(model, env, includePaths);
 
 #define LZN_MODEL(s)                                                                               \

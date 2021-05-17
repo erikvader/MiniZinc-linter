@@ -86,8 +86,6 @@ private:
     if (decl == nullptr || decl->fromStdLib() || decl->e() == nullptr)
       return ans;
 
-    std::cout << *decl << std::endl;
-
     if (visited.count(decl) == 0) {
       visited.insert(decl);
     } else {
