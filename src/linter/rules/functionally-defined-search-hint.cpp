@@ -15,16 +15,6 @@ private:
   using VDSet = std::unordered_set<const MiniZinc::VarDecl *>;
   using Vis = std::unordered_set<const MiniZinc::FunctionI *>;
 
-  // TODO: remove all these
-  // TODO: write tests
-  // limitation: funktioner som returnar oändrad global variabel, elr lokalt alias till ett sådant,
-  // f() = 2
-  // limitation: false \/ (x=2)
-  // limitation: x = f(a, b) -- a och b kanske konstrainar varandra. Gör den ändå?
-  // limitation: a=b ==== b=a??
-  // limitation: count([..|..], 3)
-  // limitation: [a] = [b+1]
-  // limitation: constraints of top-level inside function bodies
   virtual void do_run(LintEnv &env) const override {
     VDSet non_func;
     for (auto vd : env.user_defined_variable_declarations()) {

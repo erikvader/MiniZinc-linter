@@ -1,7 +1,10 @@
 #include <linter/registry.hpp>
 #include <linter/rules.hpp>
 
-// TODO: depos_placement. iterera över en lista
+// TODO: False positive when [..|i in arr] is encountered.
+// array[1..5] of var 1..2: xs;
+// constraint forall(i in xs)(i > 1);
+// `i` should not be considered
 namespace {
 using namespace LZN;
 
