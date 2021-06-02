@@ -14,6 +14,7 @@ linting rules and to comment with opinions.
 Have something to discuss? Create an issue!
 
 # Build instructions
+First, clone with all submodules using for example `git clone --recurse-submodules`. Then, inside the cloned folder, build with:
 ```sh
 mkdir build
 cd build
