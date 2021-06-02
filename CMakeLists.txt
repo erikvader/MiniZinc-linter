@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.19) #TODO: probably to high
+cmake_minimum_required(VERSION 3.16)
 project(MiniZincLinter CXX)
 
 if(NOT CMAKE_BUILD_TYPE)
