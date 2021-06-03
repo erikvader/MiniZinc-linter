@@ -31,3 +31,15 @@ Here is a table of some of them:
 | CMAKE_BUILD_TYPE                | Release | Whether to build with debug flags or release flags                                       |
 | CMAKE_POSITION_INDEPENDENT_CODE | NO      | Whether to compile with [-fPIC](https://en.wikipedia.org/wiki/Position-independent_code) |
 | LZN_FLAGS                       | NO      | Use my preferred development flags                                                       |
+
+# Usage
+The linter is run as:
+```sh
+./lzn some_model.mzn
+```
+
+The linter currently expects the standard library to be in the same directory as the executable.
+A symlink to it can be added inside the build directory with:
+```sh
+ln -s ../deps/libminizinc/share .
+```
