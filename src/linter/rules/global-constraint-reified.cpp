@@ -6,6 +6,7 @@
 // TODO: global constraints used inside functions should be judged as if they were used on the
 // function's callsite? In other words, should global constraints used inside reified function
 // calls also be flagged?
+// TODO: globals inside let-statements are incorrectly being flagged
 namespace {
 using namespace LZN;
 
