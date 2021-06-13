@@ -7,7 +7,7 @@ using namespace LZN;
 
 class NonFuncHint : public LintRule {
 public:
-  constexpr NonFuncHint() : LintRule(9, "non-func-hint") {}
+  constexpr NonFuncHint() : LintRule(9, "non-func-hint", Category::CHALLENGE) {}
 
 private:
   using ExpressionId = MiniZinc::Expression::ExpressionId;

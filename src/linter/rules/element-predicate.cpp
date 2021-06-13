@@ -6,7 +6,7 @@ using namespace LZN;
 
 class ElementPredicate : public LintRule {
 public:
-  constexpr ElementPredicate() : LintRule(15, "element-predicate") {}
+  constexpr ElementPredicate() : LintRule(15, "element-predicate", Category::STYLE) {}
 
 private:
   using ExpressionId = MiniZinc::Expression::ExpressionId;

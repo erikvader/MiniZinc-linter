@@ -6,7 +6,7 @@ using namespace LZN;
 
 class GlobalsInFunction : public LintRule {
 public:
-  constexpr GlobalsInFunction() : LintRule(5, "globals-in-function") {}
+  constexpr GlobalsInFunction() : LintRule(5, "globals-in-function", Category::STYLE) {}
 
 private:
   using ExpressionId = MiniZinc::Expression::ExpressionId;

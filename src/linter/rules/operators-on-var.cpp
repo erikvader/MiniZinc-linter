@@ -8,7 +8,7 @@ using namespace LZN;
 
 class OperatorsOnVar : public LintRule {
 public:
-  constexpr OperatorsOnVar() : LintRule(18, "operator-on-var") {}
+  constexpr OperatorsOnVar() : LintRule(18, "operator-on-var", Category::UNSURE) {}
 
 private:
   using ExpressionId = MiniZinc::Expression::ExpressionId;

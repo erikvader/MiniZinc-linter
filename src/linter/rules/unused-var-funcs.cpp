@@ -11,7 +11,7 @@ using namespace LZN;
 // TODO: marks the in-expression on a generator instead of the variable
 class UnusedVarFuncs : public LintRule {
 public:
-  constexpr UnusedVarFuncs() : LintRule(1, "unused-var-funcs") {}
+  constexpr UnusedVarFuncs() : LintRule(1, "unused-var-funcs", Category::REDUNDANT) {}
 
 private:
   using Thing = std::variant<const MiniZinc::FunctionI *, const MiniZinc::VarDecl *>;

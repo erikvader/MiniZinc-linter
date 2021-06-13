@@ -14,6 +14,17 @@ struct LintResult;
 
 using lintId = unsigned int;
 
+enum class Category {
+  CHALLENGE = 0, // Enforce the rules of the MiniZinc challenge.
+  STYLE,         // Stylistic changes.
+  UNSURE,        // Changes on things that in general is bad, very imprecise.
+  PERFORMANCE,   // Precise suggestions for performance increase
+  REDUNDANT,     // Remove redundant or unused things.
+};
+
+inline const std::vector<std::string> CATEGORY_NAMES = {"challenge", "style", "unsure",
+                                                        "performance", "redundant"};
+
 class LintEnv {
   const MiniZinc::Model *_model;
   MiniZinc::Env &_env;
@@ -92,12 +103,14 @@ public:
 
 class LintRule {
 protected:
-  constexpr LintRule(lintId id, const char *name) : id(id), name(name) {}
+  constexpr LintRule(lintId id, const char *name, Category cat)
+      : id(id), name(name), category(cat) {}
   ~LintRule() = default;
 
 public:
   const lintId id;
   const char *const name;
+  const Category category;
   void run(LintEnv &env) const { do_run(env); }
 
 private:

@@ -12,7 +12,7 @@ using namespace LZN;
 
 class GlobalConstraintReified : public LintRule {
 public:
-  constexpr GlobalConstraintReified() : LintRule(17, "global-reified") {}
+  constexpr GlobalConstraintReified() : LintRule(17, "global-reified", Category::UNSURE) {}
 
 private:
   using ExpressionId = MiniZinc::Expression::ExpressionId;

@@ -8,7 +8,7 @@ using namespace LZN;
 
 class OneBasedArrays : public LintRule {
 public:
-  constexpr OneBasedArrays() : LintRule(19, "one-based-arrays") {}
+  constexpr OneBasedArrays() : LintRule(19, "one-based-arrays", Category::PERFORMANCE) {}
 
 private:
   using BT = MiniZinc::BinOpType;

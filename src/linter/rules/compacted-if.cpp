@@ -7,7 +7,7 @@ using namespace LZN;
 
 class CompactedIf : public LintRule {
 public:
-  constexpr CompactedIf() : LintRule(20, "compacted-if") {}
+  constexpr CompactedIf() : LintRule(20, "compacted-if", Category::PERFORMANCE) {}
 
 private:
   using ExpressionId = MiniZinc::Expression::ExpressionId;

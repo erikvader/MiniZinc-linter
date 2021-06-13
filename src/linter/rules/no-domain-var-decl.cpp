@@ -19,7 +19,7 @@ bool isNoDomainVar(const MiniZinc::VarDecl &vd) {
 
 class NoDomainVarDecl : public LintRule {
 public:
-  constexpr NoDomainVarDecl() : LintRule(13, "unbounded-variable") {}
+  constexpr NoDomainVarDecl() : LintRule(13, "unbounded-variable", Category::PERFORMANCE) {}
 
 private:
   virtual void do_run(LintEnv &env) const override {

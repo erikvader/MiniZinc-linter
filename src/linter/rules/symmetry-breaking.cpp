@@ -7,7 +7,7 @@ using namespace LZN;
 
 class SymmetryBreaking : public LintRule {
 public:
-  constexpr SymmetryBreaking() : LintRule(6, "symmetry-breaking") {}
+  constexpr SymmetryBreaking() : LintRule(6, "symmetry-breaking", Category::UNSURE) {}
 
 private:
   using ExpressionId = MiniZinc::Expression::ExpressionId;

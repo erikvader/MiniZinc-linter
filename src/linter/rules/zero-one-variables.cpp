@@ -8,7 +8,7 @@ using namespace LZN;
 
 class ZeroOneVars : public LintRule {
 public:
-  constexpr ZeroOneVars() : LintRule(22, "zero-one-vars") {}
+  constexpr ZeroOneVars() : LintRule(22, "zero-one-vars", Category::PERFORMANCE) {}
 
 private:
   using ExpressionId = MiniZinc::Expression::ExpressionId;

@@ -9,7 +9,7 @@ using namespace LZN;
 // constraint if par then x = par else x = par endif;
 class ConstantVariable : public LintRule {
 public:
-  constexpr ConstantVariable() : LintRule(4, "constant-variable") {}
+  constexpr ConstantVariable() : LintRule(4, "constant-variable", Category::REDUNDANT) {}
 
 private:
   using ExpressionId = MiniZinc::Expression::ExpressionId;

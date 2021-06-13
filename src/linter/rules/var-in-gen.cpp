@@ -7,7 +7,7 @@ using namespace LZN;
 
 class VarInGen : public LintRule {
 public:
-  constexpr VarInGen() : LintRule(7, "var-in-gen") {}
+  constexpr VarInGen() : LintRule(7, "var-in-gen", Category::UNSURE) {}
 
 private:
   virtual void do_run(LintEnv &env) const override {

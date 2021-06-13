@@ -7,7 +7,7 @@ using namespace LZN;
 
 class VarInIfWhere : public LintRule {
 public:
-  constexpr VarInIfWhere() : LintRule(26, "var-in-if-where") {}
+  constexpr VarInIfWhere() : LintRule(26, "var-in-if-where", Category::UNSURE) {}
 
 private:
   virtual void do_run(LintEnv &env) const override {
