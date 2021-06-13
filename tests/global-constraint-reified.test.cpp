@@ -46,5 +46,12 @@ TEST_CASE("global constraint reified", "[rule]") {
     LZN_EXPECTED();
   }
 
+  SECTION("inside a let") {
+    LZN_MODEL("include \"globals.mzn\";\n"
+              "array[1..5] of var int: xs;\n"
+              "constraint let {int: a = 2} in alldifferent(xs);");
+    LZN_EXPECTED();
+  }
+
   LZN_TEST_CASE_END
 }

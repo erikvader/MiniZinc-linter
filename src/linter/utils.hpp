@@ -64,19 +64,6 @@ bool operator==(const MiniZinc::Location &r1, const MiniZinc::Location &r2);
 std::optional<std::tuple<unsigned int, unsigned int, unsigned int, unsigned int>>
 location_between(const MiniZinc::Location &left, const MiniZinc::Location &right);
 
-// Returns true if the path is certainly not reified.
-// Returns false if not sure.
-// TODO: should this just be `is_conjunctive`?
-template <typename T>
-bool is_not_reified(T b, T e) {
-  return std::all_of(b, e, [](const MiniZinc::Expression *e) {
-    if (auto bo = e->dynamicCast<MiniZinc::BinOp>(); bo != nullptr) {
-      return bo->op() == MiniZinc::BinOpType::BOT_AND;
-    }
-    return false;
-  });
-}
-
 // Returns true if the path is conjunctive, i.e. consists of /\, forall([..|..]), let and assert.
 // Assumes that only the bodies of comprehensions are on the path.
 // Assumes that the generators aren't no-ops.
