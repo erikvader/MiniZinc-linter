@@ -43,3 +43,9 @@ A symlink to it can be added inside the build directory with:
 ```sh
 ln -s ../deps/libminizinc/share .
 ```
+
+# Testing
+Unit tests to test all rules against small MiniZinc models are run with:
+```sh
+cmake --build . --target test
+```
