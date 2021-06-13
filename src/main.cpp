@@ -1,3 +1,4 @@
+#include "argparse.hpp"
 #include <iostream>
 #include <linter/registry.hpp>
 #include <linter/stdoutprinter.hpp>
@@ -5,16 +6,23 @@
 #include <minizinc/parser.hh>
 #include <minizinc/typecheck.hh>
 
-int main(int argc, const char *argv[]) {
-  std::vector<std::string> filenames;
-  if (argc > 1) {
-    // TODO: normalize
-    filenames.push_back(argv[1]);
-  } else {
-    std::cerr << "no file" << std::endl;
+int main(int argc, char *argv[]) {
+  const LZN::ArgRes res = LZN::parse_args(argc, argv);
+  if (auto err = std::get_if<LZN::ArgError>(&res); err != nullptr) {
+    std::cerr << err->msg << std::endl;
+    std::cerr << "print usage information with '--help'" << std::endl;
     return EXIT_FAILURE;
   }
 
+  if (std::holds_alternative<LZN::PrintHelp>(res)) {
+    LZN::print_help_msg();
+    return EXIT_SUCCESS;
+  }
+
+  const LZN::Arguments args = std::get<LZN::Arguments>(res);
+  std::vector<std::string> filenames = {args.model_filename};
+
+  // parse and typecheck
   MiniZinc::GCLock lock;
   std::vector<std::string> includePaths = {
       MiniZinc::FileUtils::file_path(MiniZinc::FileUtils::share_directory()) + "/std/"};
@@ -48,9 +56,11 @@ int main(int argc, const char *argv[]) {
     return EXIT_FAILURE;
   }
 
+  // run linter
   LZN::LintEnv lenv(m, env, includePaths);
   for (auto rule : LZN::Registry::iter()) {
-    rule->run(lenv);
+    if (!LZN::is_rule_ignored(args, *rule))
+      rule->run(lenv);
   }
 
   LZN::stdout_print(lenv.results());
