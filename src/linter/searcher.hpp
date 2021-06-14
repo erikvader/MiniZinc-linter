@@ -1,5 +1,4 @@
 #pragma once
-#include <linter/rustiter.hpp>
 #include <minizinc/ast.hh>
 #include <minizinc/model.hh>
 #include <stack>

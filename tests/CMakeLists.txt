@@ -3,7 +3,6 @@ common_configuration()
 add_executable(Test
   test.cpp
   no-domain-var-decl.test.cpp
-  rustiter.test.cpp
   searcher.test.cpp
   LinterEnv.test.cpp
   constant-variable.test.cpp
