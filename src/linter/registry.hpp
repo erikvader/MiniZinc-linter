@@ -7,10 +7,13 @@
 
 namespace LZN {
 
+// Stores all LintRules. They are added upon initialization, before main. The rules can also be
+// iterated.
 class Registry {
 private:
-  typedef std::unordered_map<lintId, const LintRule *> RuleMap;
+  using RuleMap = std::unordered_map<lintId, const LintRule *>;
 
+  // Get the map where all rules are stores. Helps with static initialization order fiasco.
   static RuleMap &getMap() noexcept;
 
 public:
@@ -18,6 +21,7 @@ public:
   static const LintRule *get(lintId id);
   static std::size_t size() noexcept;
 
+  // Iterator over all rules
   class iterator
       : public std::iterator<std::forward_iterator_tag, const RuleMap::value_type::second_type> {
     RuleMap::const_iterator it;
@@ -31,17 +35,20 @@ public:
     reference operator*() const;
   };
 
+  // Makes it possible to use: for(auto rule | Registry::iter()) {}
   class Iter {
   public:
     iterator begin() const noexcept;
     iterator end() const noexcept;
   };
 
+  // Returns an object that can be iterated over.
   static Iter iter() noexcept;
 };
 
 } // namespace LZN
 
+// A macro each rule uses to add themselves to the registry.
 #define REGISTER_RULE(r)                                                                           \
   namespace {                                                                                      \
   using namespace LZN;                                                                             \

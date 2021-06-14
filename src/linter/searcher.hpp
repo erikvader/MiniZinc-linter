@@ -6,6 +6,7 @@
 
 namespace LZN {
 
+// function type for filters.
 using ExprFilterFun = bool (*)(const MiniZinc::Expression *root, const MiniZinc::Expression *child);
 
 bool filter_out_annotations(const MiniZinc::Expression *root, const MiniZinc::Expression *child);
@@ -16,6 +17,7 @@ bool filter_comprehension_body(const MiniZinc::Expression *root, const MiniZinc:
 bool filter_global_comprehension_body(const MiniZinc::Expression *root,
                                       const MiniZinc::Expression *child);
 
+// forward reference
 class Search;
 
 } // namespace LZN
@@ -127,13 +129,16 @@ protected:
 
 namespace LZN {
 
+// A built search object, ready to perform searches.
 class Search {
-  std::vector<Impl::SearchNode> nodes;
-  Impl::SearchLocs locations;
-  std::size_t numcaptures;
-  std::vector<ExprFilterFun> global_filters;
-  const std::vector<std::string> *includePath;
-  bool recursive;
+  std::vector<Impl::SearchNode> nodes; // The path to search for
+  Impl::SearchLocs locations;          // What top-level items to search in
+  std::size_t numcaptures;             // The number of `nodes` to be captured.
+  std::vector<ExprFilterFun>
+      global_filters; // Filter functions to run on every visited node in the AST
+  const std::vector<std::string>
+      *includePath; // Include paths to determine where stdlib functions are
+  bool recursive;   // Whether or not to recursively lint included user models
 
   Search(std::vector<Impl::SearchNode> nodes, Impl::SearchLocs locations, std::size_t numcaptures,
          std::vector<ExprFilterFun> global_filters, const std::vector<std::string> *includePath,
@@ -145,24 +150,32 @@ class Search {
   friend class Impl::ModelSearcher;
 
 public:
+  // A searcher to search top-level items in a model.
   class ModelSearcher : private Impl::ModelSearcher {
     friend Search;
 
     using Impl::ModelSearcher::ModelSearcher;
 
   public:
+    // Search for the next hit, returns true if one is found
     bool next();
+    // Returns the current item where the latest hit was found in
     const MiniZinc::Item *cur_item() const noexcept;
+    // Returns the n:th captured node
     const MiniZinc::Expression *capture(std::size_t n) const;
+    // Skip the whole current item
     void skip_item();
+    // Returns a pair of iterators for the current path of the latest hit
     using Impl::ModelSearcher::current_path;
 
+    // Convenience to capture and cast at the same time.
     template <typename T>
     const T *capture_cast(std::size_t n) const {
       return capture(n)->cast<T>();
     }
   };
 
+  // A searcher for expressions.
   class ExpressionSearcher : private Impl::ExprSearcher {
     friend Search;
 
@@ -175,30 +188,38 @@ public:
     }
 
   public:
+    // Returns a pair of iterators for the current path of the latest hit
     using Impl::ExprSearcher::current_path;
+    // Search for the next hit, returns true if one is found
     bool next() { return Impl::ExprSearcher::next(); }
+    // Returns the n:th captured node
     const MiniZinc::Expression *capture(std::size_t n) const {
       return Impl::ExprSearcher::capture(n);
     }
+    // Convenience to capture and cast at the same time.
     template <typename T>
     const T *capture_cast(std::size_t n) const {
       return capture(n)->cast<T>();
     }
   };
 
+  // Search among top-level items in a model.
   ModelSearcher search(const MiniZinc::Model *m) const & { return ModelSearcher(m, *this); }
   ModelSearcher search(const MiniZinc::Model *) && = delete;
+  // Search an expression
   ExpressionSearcher search(const MiniZinc::Expression *e) const & {
     return ExpressionSearcher(nodes, &global_filters, e);
   }
   ExpressionSearcher search(const MiniZinc::Expression *) && = delete;
 
+  // Returns true if an include-statement includes a non-library model.
   bool is_user_defined_include(const MiniZinc::IncludeI *) const noexcept;
   bool is_recursive() const noexcept;
   bool is_user_defined_only() const noexcept { return includePath != nullptr; }
   const std::vector<std::string> *include_path() const noexcept { return includePath; };
 };
 
+// A builder for `Search`
 class SearchBuilder {
   std::vector<Impl::SearchNode> nodes;
   Impl::SearchLocs locations;
@@ -223,11 +244,13 @@ public:
     return *this;
   }
 
+  // Whether included models should be recursively linted as well.
   SearchBuilder &recursive(bool r = true) {
     _recursive = r;
     return *this;
   }
 
+  // Specify that a type of top-level item should be searched in.
   SearchBuilder &in_include(bool visit = true) {
     locations.use_ii = visit;
     return *this;
@@ -282,11 +305,13 @@ public:
         .in_output();
   }
 
+  // Add a global filter that will be executed on every node in the AST.
   SearchBuilder &global_filter(ExprFilterFun f) {
     global_filters.push_back(f);
     return *this;
   }
 
+  // Add a filter for the last node (last `direct` or `under`).
   SearchBuilder &filter(ExprFilterFun f) {
     if (nodes.empty())
       throw std::logic_error("there is nothing to add a filter to");
@@ -294,6 +319,8 @@ public:
     return *this;
   }
 
+  // Add a type of node to searched for. It must be a direct child of the previous one, or the
+  // root if there is no previous one.
   SearchBuilder &direct(ExpressionId eid) {
     nodes.emplace_back(Attach::direct, eid);
     return *this;
@@ -307,6 +334,7 @@ public:
     return *this;
   }
 
+  // Add a type of node to search for. It is a child (non-direct) of the previous node, if any.
   SearchBuilder &under(ExpressionId eid) {
     nodes.emplace_back(Attach::under, eid);
     return *this;
@@ -320,6 +348,8 @@ public:
     return *this;
   }
 
+  // Specify that the latest node (`direct` or `under`) should be captured, i.e. saved for retrieval
+  // later.
   SearchBuilder &capture() {
     if (nodes.empty())
       throw std::logic_error("there is nothing to capture");
@@ -328,6 +358,7 @@ public:
     return *this;
   }
 
+  // Construct the Search.
   Search build() {
     return Search(std::move(nodes), std::move(locations), numcaptures, std::move(global_filters),
                   includePath, _recursive);

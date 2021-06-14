@@ -5,6 +5,9 @@
 #include <minizinc/eval_par.hh>
 
 namespace LZN {
+// Compare the elements of two unsorted sequences using a comparison function. The elements of
+// `ItModify` are swapped around to make the O(n^2) comparison a little faster. Elements are matched
+// one-to-one, so both sequences must be of the same size.
 template <typename Cmp, typename It, typename ItModify>
 bool unsorted_equal_cmp(ItModify modbeg, ItModify modend, It beg, It end, Cmp cmp) {
   ItModify first_unsure = modbeg;
@@ -27,7 +30,8 @@ bool unsorted_equal_cmp(ItModify modbeg, ItModify modend, It beg, It end, Cmp cm
   return first_unsure == modend;
 }
 
-// Variants that accept pointers to const expressions
+// Variants that accept pointers to const expressions.
+// These assume that the original functions in "eval_par.hh" doesn't modify their arguments.
 const MiniZinc::Expression *follow_id(const MiniZinc::Expression *e);
 const MiniZinc::Expression *follow_id_to_decl(const MiniZinc::Expression *e);
 MiniZinc::IntBounds compute_int_bounds(MiniZinc::EnvI &env, const MiniZinc::Expression *e);
