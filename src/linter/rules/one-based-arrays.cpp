@@ -6,6 +6,8 @@
 namespace {
 using namespace LZN;
 
+// TODO: Maybe complain only if it can show an array doesn't start at one, and don't complain if it
+// doesn't know.
 class OneBasedArrays : public LintRule {
 public:
   constexpr OneBasedArrays() : LintRule(19, "one-based-arrays", Category::PERFORMANCE) {}
