@@ -1,4 +1,5 @@
 #include "rules.hpp"
+#include <algorithm>
 #include <linter/file_utils.hpp>
 #include <linter/overload.hpp>
 #include <linter/utils.hpp>
@@ -108,6 +109,16 @@ const LintEnv::VDVec &LintEnv::user_defined_variable_declarations() {
 
     LintEnv::VDVec vec;
     while (ms.next()) {
+      // Remove duplicated functions, see `user_defined_functions`. This check is redundant
+      // otherwise.
+      if (auto func = ms.cur_item()->dynamicCast<MiniZinc::FunctionI>(); func != nullptr) {
+        auto udf = user_defined_functions();
+        if (std::find(udf.cbegin(), udf.cend(), func) == udf.cend()) {
+          ms.skip_item();
+          continue;
+        }
+      }
+
       auto vd = ms.capture(0)->cast<MiniZinc::VarDecl>();
       vec.push_back(vd);
     }
@@ -152,7 +163,10 @@ const LintEnv::UDFVec &LintEnv::user_defined_functions() {
       // NOTE: A function declared with var arguments generats a par version of the same function in
       // the exact same location. It doesn't seem like it is possible to use this new variant, so it
       // is not included. Both should be considered as the same function anyway.
-      if (!vec.empty() && vec.back()->id() == fi->id() && vec.back()->loc() == fi->loc())
+      // TODO: double check that the correct one is being removed, is it always the second one?.
+      if (std::any_of(vec.cbegin(), vec.cend(), [fi](const MiniZinc::FunctionI *f) {
+            return f->id() == fi->id() && f->loc() == fi->loc();
+          }))
         continue;
       vec.push_back(fi);
     }

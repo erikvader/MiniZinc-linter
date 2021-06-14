@@ -168,5 +168,13 @@ TEST_CASE("unused variables and functions", "[rule]") {
     LZN_EXPECTED();
   }
 
+  SECTION("ignore duplicated function") {
+    // There will be two slightly different definitions of f. `i` will be marked as unused in the
+    // copy, but it should be ignored.
+    LZN_MODEL("function var int: f(var int: x) = sum(i in 1..2)(i);\n"
+              "constraint f(1) = 0;");
+    LZN_EXPECTED(LZN_ONELINE(1, 21, 30));
+  }
+
   LZN_TEST_CASE_END
 }
