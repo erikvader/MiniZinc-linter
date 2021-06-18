@@ -2,6 +2,7 @@
 
 #include <linter/searcher.hpp>
 #include <minizinc/model.hh>
+#include <optional>
 #include <string>
 #include <tuple>
 #include <unordered_map>

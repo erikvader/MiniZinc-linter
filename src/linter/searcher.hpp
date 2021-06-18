@@ -1,6 +1,7 @@
 #pragma once
 #include <minizinc/ast.hh>
 #include <minizinc/model.hh>
+#include <optional>
 #include <stack>
 #include <variant>
 
@@ -138,7 +139,7 @@ class Search {
       global_filters; // Filter functions to run on every visited node in the AST
   const std::vector<std::string>
       *includePath; // Include paths to determine where stdlib functions are
-  bool recursive;   // Whether or not to recursively lint included user models
+  bool recursive;   // Whether or not to recursively lint included models
 
   Search(std::vector<Impl::SearchNode> nodes, Impl::SearchLocs locations, std::size_t numcaptures,
          std::vector<ExprFilterFun> global_filters, const std::vector<std::string> *includePath,
