@@ -17,6 +17,7 @@ public:
 class Arguments {
 public:
   std::string model_filename; // required
+  std::vector<std::string> datafiles;
   std::vector<lintId> ignored_rules;
   std::vector<std::string> ignored_rule_names;
   std::vector<Category> ignored_categories;

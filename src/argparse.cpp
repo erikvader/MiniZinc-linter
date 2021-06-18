@@ -40,7 +40,7 @@ namespace LZN {
 void print_help_msg() {
   std::cout << //
       "Usage:\n"
-      "  lzn [--help] [--ignore idOrName] [--ignore-category name] [--] modelfile\n"
+      "  lzn [--help] [--ignore idOrName] [--ignore-category name] [--] modelfile [datafiles...]\n"
       "\n"
       "Flags:\n"
       "  --help/-h                  Print this help message.\n"
@@ -93,11 +93,14 @@ ArgRes parse_args(int argc, char *argv[]) {
 
   if (optind >= argc) {
     return ArgError{"missing required positional argument, namely the model file"};
-  } else if (optind != argc - 1) {
-    return ArgError{"only one model file is expected"};
-  } else {
+  }
+  // TODO: normalize filename?
+  results.model_filename = argv[optind];
+  ++optind;
+
+  for (int i = optind; i < argc; i++) {
     // TODO: normalize filename?
-    results.model_filename = argv[optind];
+    results.datafiles.push_back(argv[i]);
   }
 
   return results;

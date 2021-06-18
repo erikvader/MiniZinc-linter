@@ -28,8 +28,8 @@ int main(int argc, char *argv[]) {
       MiniZinc::FileUtils::file_path(MiniZinc::FileUtils::share_directory()) + "/std/"};
   std::stringstream errstream;
   MiniZinc::Env env;
-  MiniZinc::Model *m = MiniZinc::parse(env, filenames, {}, "", "", includePaths, false, false,
-                                       false, false, errstream);
+  MiniZinc::Model *m = MiniZinc::parse(env, filenames, args.datafiles, "", "", includePaths, false,
+                                       false, false, false, errstream);
 
   char empty_check;
   if (errstream.readsome(&empty_check, 1) == 1) {
