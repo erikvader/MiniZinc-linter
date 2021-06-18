@@ -197,6 +197,7 @@ private:
         .global_filter(filter_out_vardecls)
         .in_solve()
         .in_constraint()
+        .in_output()
         .under(search_for)
         .capture()
         .build();

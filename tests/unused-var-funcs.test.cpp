@@ -8,10 +8,10 @@ TEST_CASE("unused variables and functions", "[rule]") {
     LZN_EXPECTED(LZN_ONELINE(1, 1, 10));
   }
 
-  SECTION("one unused and outputted") {
+  SECTION("one used and outputted") {
     LZN_MODEL("var int: x;\n"
               "output [show(x)];");
-    LZN_EXPECTED(LZN_ONELINE(1, 1, 10));
+    LZN_EXPECTED();
   }
 
   SECTION("one used") {
