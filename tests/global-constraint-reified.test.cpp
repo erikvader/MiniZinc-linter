@@ -53,5 +53,19 @@ TEST_CASE("global constraint reified", "[rule]") {
     LZN_EXPECTED();
   }
 
+  SECTION("inside redundant") {
+    LZN_MODEL("include \"globals.mzn\";\n"
+              "array[1..5] of var int: xs;\n"
+              "constraint redundant_constraint(alldifferent(xs));");
+    LZN_EXPECTED();
+  }
+
+  SECTION("inside implied") {
+    LZN_MODEL("include \"globals.mzn\";\n"
+              "array[1..5] of var int: xs;\n"
+              "constraint implied_constraint(alldifferent(xs));");
+    LZN_EXPECTED();
+  }
+
   LZN_TEST_CASE_END
 }

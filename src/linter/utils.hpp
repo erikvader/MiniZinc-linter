@@ -88,7 +88,11 @@ bool is_conjunctive(T b, T e) {
                          return true;
                        }
                        if (auto call = e->dynamicCast<MiniZinc::Call>(); call != nullptr) {
-                         return call->id() == MiniZinc::constants().ids.assert;
+                         const auto &id = call->id();
+                         const auto &conts = MiniZinc::constants().ids;
+                         return strcmp(id.c_str(), "implied_constraint") == 0 ||
+                                id == conts.assert || id == conts.mzn_redundant_constraint ||
+                                id == conts.mzn_symmetry_breaking_constraint;
                        }
                        if (auto comp = e->dynamicCast<MiniZinc::Comprehension>(); comp != nullptr) {
                          last_comp = true;
