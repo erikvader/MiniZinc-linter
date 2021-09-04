@@ -53,6 +53,8 @@ private:
       return false;
     if (!is_same_number_type(ite->thenExpr(0), ite->elseExpr()))
       return false;
+    if (ite->type().isPar())
+      return false;
     return is_zero(ite->thenExpr(0)) ^ is_zero(ite->elseExpr());
   }
 
