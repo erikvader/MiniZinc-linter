@@ -55,6 +55,8 @@ private:
       return false;
     if (ite->type().isPar())
       return false;
+    if (ite->ifExpr(0)->type().isPar())
+      return false;
     return is_zero(ite->thenExpr(0)) ^ is_zero(ite->elseExpr());
   }
 

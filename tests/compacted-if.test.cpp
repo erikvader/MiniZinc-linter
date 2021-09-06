@@ -52,5 +52,12 @@ TEST_CASE("compacted if", "[rule]") {
     LZN_EXPECTED();
   }
 
+  SECTION("if-part is par") {
+    LZN_MODEL("var int: y;\n"
+              "int: b = 1;\n"
+              "constraint if b = 1 then y else 0 endif = 7;");
+    LZN_EXPECTED();
+  }
+
   LZN_TEST_CASE_END
 }
