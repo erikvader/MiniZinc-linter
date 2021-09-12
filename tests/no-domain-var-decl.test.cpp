@@ -84,5 +84,11 @@ TEST_CASE("no domain on variable declarations", "[rule]") {
     LZN_EXPECTED();
   }
 
+  SECTION("in generator") {
+    LZN_MODEL("array[1..5] of var 1..2: xs;\n"
+              "constraint forall([i > 0 | i in xs])");
+    LZN_EXPECTED();
+  }
+
   LZN_TEST_CASE_END
 }

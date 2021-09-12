@@ -246,6 +246,26 @@ const LintEnv::ExprVec &LintEnv::constraints() {
   });
 }
 
+const LintEnv::CSet &LintEnv::comprehensions() {
+  return lazy_value(_comprehensions, [this, model = _model]() {
+    LintEnv::CSet set;
+
+    const auto s = userdef_only_builder()
+                       .in_everywhere()
+                       .under(MiniZinc::Expression::E_COMP)
+                       .capture()
+                       .build();
+    auto ms = s.search(model);
+
+    while (ms.next()) {
+      auto comp = ms.capture_cast<MiniZinc::Comprehension>(0);
+      set.insert(comp);
+    }
+
+    return set;
+  });
+}
+
 const MiniZinc::Expression *LintEnv::get_equal_constrained_rhs(const MiniZinc::VarDecl *vd) {
   const auto &map = equal_constrained();
   auto it = map.find(vd);

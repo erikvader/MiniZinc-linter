@@ -77,6 +77,10 @@ class LintEnv {
   using VDSet = std::unordered_set<const MiniZinc::VarDecl *>;
   std::optional<VDSet> _search_hinted;
 
+  // all comprehensions
+  using CSet = std::unordered_set<const MiniZinc::Comprehension *>;
+  std::optional<CSet> _comprehensions;
+
 public:
   LintEnv(const MiniZinc::Model *model, MiniZinc::Env &env,
           const std::vector<std::string> &includePath)
@@ -105,6 +109,7 @@ public:
   const MiniZinc::SolveI *solve_item();
   const VDSet &search_hinted_variables();
   const ExprVec &constraints();
+  const CSet &comprehensions();
 
   // return what the variable is equal constrained to
   const MiniZinc::Expression *get_equal_constrained_rhs(const MiniZinc::VarDecl *);

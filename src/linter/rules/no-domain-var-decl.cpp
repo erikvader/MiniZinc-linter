@@ -1,10 +1,6 @@
 #include <linter/registry.hpp>
 #include <linter/rules.hpp>
 
-// TODO: False positive when [..|i in arr] is encountered.
-// array[1..5] of var 1..2: xs;
-// constraint forall(i in xs)(i > 1);
-// `i` should not be considered
 namespace {
 using namespace LZN;
 
@@ -17,6 +13,19 @@ bool isNoDomainVar(const MiniZinc::VarDecl &vd) {
          t.dim() >= 0 && t.isPresent() && domain == nullptr;
 }
 
+bool isGeneratorVar(const MiniZinc::VarDecl *vd, LintEnv &env) {
+  auto comps = env.comprehensions();
+  for (const MiniZinc::Comprehension *c : comps) {
+    for (unsigned int gen = 0; gen < c->numberOfGenerators(); gen++) {
+      for (unsigned int decl = 0; decl < c->numberOfDecls(gen); decl++) {
+        if (vd == c->decl(gen, decl))
+          return true;
+      }
+    }
+  }
+  return false;
+}
+
 class NoDomainVarDecl : public LintRule {
 public:
   constexpr NoDomainVarDecl() : LintRule(13, "unbounded-variable", Category::PERFORMANCE) {}
@@ -25,7 +34,7 @@ private:
   virtual void do_run(LintEnv &env) const override {
     for (const MiniZinc::VarDecl *vd : env.user_defined_variable_declarations()) {
       if (isNoDomainVar(*vd) && vd->e() == nullptr &&
-          env.get_equal_constrained_rhs(vd) == nullptr) {
+          env.get_equal_constrained_rhs(vd) == nullptr && !isGeneratorVar(vd, env)) {
         auto &loc = vd->loc();
         env.emplace_result(FileContents::Type::OneLineMarked, loc, this,
                            "no explicit domain on variable declaration");
