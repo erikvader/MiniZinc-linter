@@ -5,8 +5,6 @@
 namespace {
 using namespace LZN;
 
-// TODO: also look for
-// constraint if par then x = par else x = par endif;
 class ConstantVariable : public LintRule {
 public:
   constexpr ConstantVariable() : LintRule(4, "constant-variable", Category::REDUNDANT) {}

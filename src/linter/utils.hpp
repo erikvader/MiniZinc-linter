@@ -68,7 +68,9 @@ bool operator==(const MiniZinc::Location &r1, const MiniZinc::Location &r2);
 std::optional<std::tuple<unsigned int, unsigned int, unsigned int, unsigned int>>
 location_between(const MiniZinc::Location &left, const MiniZinc::Location &right);
 
-// Returns true if the path is conjunctive, i.e. consists of /\, forall([..|..]), let and assert.
+// Returns true if the path is conjunctive, i.e., always is constrained to true.
+// This is the case if the path consists only of: /\, forall([..|..]), let, assert,
+// redundant_constraint, symmetry_breaking_constraint and if-expressions with a par condition.
 // Assumes that only the bodies of comprehensions are on the path.
 // Assumes that the generators aren't no-ops.
 template <typename T>
@@ -93,6 +95,13 @@ bool is_conjunctive(T b, T e) {
                          return strcmp(id.c_str(), "implied_constraint") == 0 ||
                                 id == conts.assert || id == conts.mzn_redundant_constraint ||
                                 id == conts.mzn_symmetry_breaking_constraint;
+                       }
+                       if (auto ite = e->dynamicCast<MiniZinc::ITE>(); ite != nullptr) {
+                         for (unsigned int i = 0; i < ite->size(); i++) {
+                           if (ite->ifExpr(i)->type().isvar())
+                             return false;
+                         }
+                         return true;
                        }
                        if (auto comp = e->dynamicCast<MiniZinc::Comprehension>(); comp != nullptr) {
                          last_comp = true;

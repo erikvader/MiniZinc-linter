@@ -67,5 +67,12 @@ TEST_CASE("global constraint reified", "[rule]") {
     LZN_EXPECTED();
   }
 
+  SECTION("a par if") {
+    LZN_MODEL("include \"globals.mzn\";\n"
+              "array[1..5] of var int: xs;\n"
+              "constraint if 1 > 2 then true else implied_constraint(alldifferent(xs)) endif;");
+    LZN_EXPECTED();
+  }
+
   LZN_TEST_CASE_END
 }
