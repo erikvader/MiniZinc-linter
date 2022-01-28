@@ -1,3 +1,5 @@
+# Moved to [here](https://github.com/astra-uu-se/MiniZinc-linter)
+
 # About
 This is my master thesis project for a
 [linter](https://en.wikipedia.org/wiki/Lint_(software)) for
