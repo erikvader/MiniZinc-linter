@@ -54,7 +54,8 @@ install(TARGETS lzn)
 set(PACMAN_PKG_EXT ".pkg.tar.zst" CACHE STRING "extension to use when packaging for pacman")
 configure_file(PKGBUILD.in PKGBUILD @ONLY)
 add_custom_target(
-  package env BUILDDIR="${CMAKE_BINARY_DIR}/makepkg" makepkg -f
+  package
+  env BUILDDIR="${CMAKE_BINARY_DIR}/makepkg" PKGEXT="${PACMAN_PKG_EXT}" makepkg -f
   BYPRODUCTS
   makepkg
   ${PROJECT_NAME}-${PROJECT_VERSION}-0-${CMAKE_HOST_SYSTEM_PROCESSOR}${PACMAN_PKG_EXT})
