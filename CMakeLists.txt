@@ -1,5 +1,8 @@
 cmake_minimum_required(VERSION 3.16)
-project(MiniZincLinter CXX)
+project(MiniZincLinter
+  LANGUAGES CXX
+  DESCRIPTION "I am a description"
+  VERSION 1.2.3)
 
 if(NOT CMAKE_BUILD_TYPE)
   set(CMAKE_BUILD_TYPE Release)
@@ -43,3 +46,15 @@ target_include_directories(
 add_subdirectory(tests)
 add_subdirectory(deps/Catch2 EXCLUDE_FROM_ALL)
 target_link_libraries(Test PRIVATE Catch2::Catch2)
+
+# Install
+install(TARGETS lzn)
+
+# makepkg
+set(PACMAN_PKG_EXT ".pkg.tar.zst" CACHE STRING "extension to use when packaging for pacman")
+configure_file(PKGBUILD.in PKGBUILD @ONLY)
+add_custom_target(
+  package env BUILDDIR="${CMAKE_BINARY_DIR}/makepkg" makepkg -f
+  BYPRODUCTS
+  makepkg
+  ${PROJECT_NAME}-${PROJECT_VERSION}-0-${CMAKE_HOST_SYSTEM_PROCESSOR}${PACMAN_PKG_EXT})
