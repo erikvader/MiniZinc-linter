@@ -51,11 +51,18 @@ target_link_libraries(Test PRIVATE Catch2::Catch2)
 install(TARGETS lzn)
 
 # makepkg
-set(PACMAN_PKG_EXT ".pkg.tar.zst" CACHE STRING "extension to use when packaging for pacman")
-configure_file(PKGBUILD.in PKGBUILD @ONLY)
+set(PACMAN_PKG_EXT ".tar.zst" CACHE STRING "extension to use when packaging for pacman")
+set(PACMAN_INSTALL_DIR "install")
+set(PACMAN_INSTALL_FILE "lzn.install")
+set(PACMAN_LIGHT "makepkg-light.sh")
+set(PACMAN_PKG_DEST "${PROJECT_NAME}-${PROJECT_VERSION}-0-x86_64.pkg${PACMAN_PKG_EXT}")
+
+configure_file("${PACMAN_INSTALL_FILE}.in" "${PACMAN_INSTALL_FILE}" @ONLY)
+configure_file("${PACMAN_LIGHT}.in" "${PACMAN_LIGHT}" @ONLY)
+
 add_custom_target(
   package
-  env BUILDDIR="${CMAKE_BINARY_DIR}/makepkg" PKGEXT="${PACMAN_PKG_EXT}" makepkg -f
+  "./${PACMAN_LIGHT}"
   BYPRODUCTS
-  makepkg
-  ${PROJECT_NAME}-${PROJECT_VERSION}-0-${CMAKE_HOST_SYSTEM_PROCESSOR}${PACMAN_PKG_EXT})
+  "${PACMAN_INSTALL_DIR}"
+  "${PACMAN_PKG_DEST}")
